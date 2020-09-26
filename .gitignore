@@ -1,5 +1,6 @@
 .vscode/
 .idea/
+**/*.iml
 
 *.swp
 
@@ -20,3 +21,4 @@
 *.rs.bk
 .rls.toml
 rls/**
+*.log

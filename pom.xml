@@ -108,9 +108,9 @@
             <property>
               <name>jnr.ffi.library.path</name>
               <value>${native.dir}/darwin</value>
-              <environmentVariables>
-                <RUST_LOG>wasmtime=debug</RUST_LOG>
-              </environmentVariables>
+<!--              <environmentVariables>-->
+<!--                <RUST_LOG>wasmtime=debug</RUST_LOG>-->
+<!--              </environmentVariables>-->
             </property>
           </systemProperties>
         </configuration>
