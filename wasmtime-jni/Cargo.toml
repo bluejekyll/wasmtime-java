@@ -1,0 +1,17 @@
+[package]
+name = "wasmtime-jni"
+version = "0.1.0"
+authors = ["Benjamin Fry <benjaminfry@me.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "wasmtime_jni"
+crate_type = ["cdylib"]
+
+[dependencies]
+flexi_logger = "0.16.1"
+jni = "0.17.0"
+log = "0.4.11"
+wasmtime = { version = "0.20", features=["jitdump","wat","cache"] }

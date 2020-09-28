@@ -1,25 +1,25 @@
-WASMTIME_TARGET_DIR := ${PWD}/target/wasmtime/target
+WASMTIME_TARGET_DIR := ${PWD}/wasmtime-jni/target
 NATIVE_TARGET_DIR := ${PWD}/target/native
 
 .PHONY: clean
 clean:
-	rm -rf target
+	cd wasmtime-jni && cargo clean
+	mvn clean
 
-target/wasmtime:
-	mkdir -p target
-	cd target && git clone https://github.com/bytecodealliance/wasmtime.git
-	cd target/wasmtime && git submodule update --init
-
-target/native: target/wasmtime
-	@echo fetching and building wasmtime
-	cd target/wasmtime && (\
-		cargo build --release --manifest-path crates/c-api/Cargo.toml --lib --features=jitdump,wat,cache \
-	)
+target/native:
+	@echo building wasmtime-jni
+	cd wasmtime-jni && cargo build ${RELEASE} --lib
 	@mkdir -p ${NATIVE_TARGET_DIR}
-	@cp -rpf ${WASMTIME_TARGET_DIR}/release/*.dll ${NATIVE_TARGET_DIR}/ || true
-	@cp -rpf ${WASMTIME_TARGET_DIR}/release/*.dylib ${NATIVE_TARGET_DIR}/ || true
-	@cp -rpf ${WASMTIME_TARGET_DIR}/release/*.so ${NATIVE_TARGET_DIR}/ || true
+	@cp -rpf ${WASMTIME_TARGET_DIR}/debug/*.dll ${NATIVE_TARGET_DIR}/ || true
+	@cp -rpf ${WASMTIME_TARGET_DIR}/debug/*.dylib ${NATIVE_TARGET_DIR}/ || true
+	@cp -rpf ${WASMTIME_TARGET_DIR}/debug/*.so ${NATIVE_TARGET_DIR}/ || true
 
 .PHONY: test
-test: target/native
+test:
+	cd wasmtime-jni && cargo test
+	rm -rf ${NATIVE_TARGET_DIR}
+	$(MAKE) mvn-test
+
+.PHONY: mvn-test
+mvn-test: target/native
 	mvn test

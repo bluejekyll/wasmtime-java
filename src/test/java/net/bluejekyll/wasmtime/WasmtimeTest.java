@@ -2,49 +2,63 @@ package net.bluejekyll.wasmtime;
 
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Assert;
 import org.junit.Test;
-import jnr.ffi.Pointer;
 
 
 /**
  * Unit test for simple App.
  */
-public class WasmtimeTest 
-{
+public class WasmtimeTest {
     @Test
-    public void testNewWasmEngine()
-    {
+    public void testNewWasmEngine() {
         Wasmtime wasm = new Wasmtime();
-        try(WasmEngineT engine = wasm.newWasmEngine()) {
+        try (WasmEngine engine = wasm.newWasmEngine()) {
             System.out.println("new engine succeeded");
         }
     }
 
     @Test
-    public void testNewWasmStore()
-    {
+    public void testNewWasmStore() {
         Wasmtime wasm = new Wasmtime();
-        try(WasmEngineT engine = wasm.newWasmEngine();
-            WasmStoreT store = engine.newStore()) {
+        try (WasmEngine engine = wasm.newWasmEngine();
+             WasmStore store = engine.newStore()) {
             System.out.println("new store succeeded");
         }
     }
 
     @Test(expected = WasmtimeException.class)
-    public void testNewWasmBadModule() throws Exception
-    {
-        byte[] bad = {};
+    public void testNewWasmBadModule() throws Exception {
+        byte[] bad = {0, 1, 2};
 
         Wasmtime wasm = new Wasmtime();
-        try(WasmEngineT engine = wasm.newWasmEngine();
-            WasmModuleT module = engine.newModule(bad)) {
+        try (WasmEngine engine = wasm.newWasmEngine();
+             WasmModule module = engine.newModule(bad)) {
             System.out.println("bad, module should have failed");
         }
     }
 
-    @Test(expected = WasmtimeException.class)
-    public void testNewWasmModule() throws Exception
-    {
+    @Test
+    public void testWasmWorsAfterException() throws Exception {
+        byte[] bad = {0, 1, 2};
+
+        Wasmtime wasm = new Wasmtime();
+        try (WasmEngine engine = wasm.newWasmEngine()) {
+            try (WasmModule module = engine.newModule(bad)) {
+                Assert.assertTrue("bad, module should have failed", false);
+            } catch (WasmtimeException e) {
+                // cool
+            }
+
+            // check that things are still working
+            try (WasmStore store = engine.newStore()) {
+                System.out.println("engine still functions");
+            }
+        }
+    }
+
+    @Test
+    public void testNewWasmModule() throws Exception {
         String good = "(module\n" +
                 "            (import \"\" \"\" (func $host_hello (param i32)))\n" +
                 "\n" +
@@ -54,9 +68,9 @@ public class WasmtimeTest
                 "        )";
 
         Wasmtime wasm = new Wasmtime();
-        try(WasmEngineT engine = wasm.newWasmEngine();
-            WasmModuleT module = engine.newModule(good.getBytes())) {
-            System.out.println("bad, module should have failed");
+        try (WasmEngine engine = wasm.newWasmEngine();
+             WasmModule module = engine.newModule(good.getBytes())) {
+            System.out.println("module compiled");
         }
     }
 }
