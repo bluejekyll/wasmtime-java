@@ -1,141 +1,233 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>net.bluejekyll</groupId>
-  <artifactId>wasmtime-java</artifactId>
-  <version>1.0-SNAPSHOT</version>
+    <groupId>net.bluejekyll</groupId>
+    <artifactId>wasmtime-java</artifactId>
+    <version>1.0-SNAPSHOT</version>
 
-  <name>wasmtime-java</name>
-  <url>https://github.com/bluejekyll/wasmtime-java</url>
+    <name>wasmtime-java</name>
+    <url>https://github.com/bluejekyll/wasmtime-java</url>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
 
-    <native.build.dir>${project.basedir}/target/native</native.build.dir>
-    <native.dir>${project.build.directory}/native-resources/native</native.dir>
-  </properties>
+        <native.build.dir>${project.basedir}/target/native</native.build.dir>
+        <native.dir>${project.build.directory}/native-resources/native</native.dir>
+    </properties>
 
-  <dependencies>
-    <dependency>
-      <groupId>com.github.jnr</groupId>
-      <artifactId>jnr-ffi</artifactId>
-      <version>2.2.0</version>
-    </dependency>
-    <!-- TESTING -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.jnr</groupId>
+            <artifactId>jnr-ffi</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <!-- TESTING -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
-  <build>
-    <!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
-    <plugins>
-      <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
-      <plugin>
-        <artifactId>maven-clean-plugin</artifactId>
-        <version>3.1.0</version>
-      </plugin>
-      <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
-      <plugin>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>3.1.0</version>
-        <executions>
-          <execution>
-            <id>copy-resources</id>
-            <!-- here the phase you need -->
-            <phase>process-resources</phase>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${native.dir}/darwin</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${native.build.dir}</directory>
-                  <includes>
-                    <include>libwasmtime.dylib</include>
-                  </includes>
-                  <filtering>false</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.8</version>
-        <executions>
-          <execution>
-            <id>chmod-dylibs</id>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <chmod perm="ugo+rx">
-                  <fileset dir="${native.dir}">
-                    <include name="**/*.dll" />
-                    <include name="**/*.so" />
-                    <include name="**/*.dylib" />
-                  </fileset>
-                </chmod>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.1</version>
-        <configuration>
-          <forkCount>1</forkCount>
-          <reuseForks>true</reuseForks>
-          <systemProperties combine.children="append">
-            <property>
-              <name>jnr.ffi.library.path</name>
-              <value>${native.dir}/darwin</value>
-<!--              <environmentVariables>-->
-<!--                <RUST_LOG>wasmtime=debug</RUST_LOG>-->
-<!--              </environmentVariables>-->
-            </property>
-          </systemProperties>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.0</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-install-plugin</artifactId>
-        <version>2.5.2</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <version>2.8.2</version>
-      </plugin>
-      <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
-      <plugin>
-        <artifactId>maven-site-plugin</artifactId>
-        <version>3.9.1</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-        <version>3.1.1</version>
-      </plugin>
-    </plugins>
-  </build>
+    <build>
+        <!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+        <plugins>
+            <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.1.0</version>
+            </plugin>
+            <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
+            <!--            <plugin>-->
+            <!--                <groupId>org.codehaus.mojo</groupId>-->
+            <!--                <artifactId>native-maven-plugin</artifactId>-->
+            <!--                <extensions>true</extensions>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>generate-headers</id>-->
+            <!--                        &lt;!&ndash; here the phase you need &ndash;&gt;-->
+            <!--                        <phase>compile</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>javah</goal>-->
+            <!--                        </goals>-->
+            <!--                        <configuration>-->
+            <!--                            &lt;!&ndash; trigger javah execution &ndash;&gt;-->
+            <!--                            <javahClassNames>-->
+            <!--                                <javahClassName>net.bluejekyll.wasmtime.WasmEngine</javahClassName>-->
+            <!--                            </javahClassNames>-->
+            <!--                            &lt;!&ndash; enable additional javah interface in dependencies list &ndash;&gt;-->
+            <!--                            <javahSearchJNIFromDependencies>false</javahSearchJNIFromDependencies>-->
+            <!--                            &lt;!&ndash;-->
+            <!--                             | Add jdk include directories to system include path-->
+            <!--                             | Override ${jkdIncludePath} If your jdk does not conform to Sun JDK layout-->
+            <!--                             &ndash;&gt;-->
+            <!--                            &lt;!&ndash;                <javahOS>win32</javahOS>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash; setup compiler and linker environment according to msvc 6 vcvars32.bat &ndash;&gt;-->
+            <!--                            &lt;!&ndash; without this setting, you will need to setup the environment outside   &ndash;&gt;-->
+            <!--                            &lt;!&ndash; of Maven                                                               &ndash;&gt;-->
+            <!--                            &lt;!&ndash;                <envFactoryName>org.codehaus.mojo.natives.msvc.MSVC6EnvFactory</envFactoryName>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash;                <compilerProvider>msvc</compilerProvider>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash;                <compilerStartOptions>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    <compilerStartOption> /MD /W4 -O</compilerStartOption>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    <compilerStartOption>-D_WIN32_WINNT=0x0500 </compilerStartOption>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                </compilerStartOptions>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash;                <sources>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    <source>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <&#45;&#45; relative to your project directory &ndash;&gt;&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <directory>../src/main/native</directory>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <fileNames>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                            <fileName>file1.c</fileName>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                            <fileName>file2.c</fileName>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                            <fileName>...</fileName>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        </fileNames>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    </source>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    <source>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <directory>src/main/native</directory>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <fileNames>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                            <fileName>file3.c</fileName>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                            <fileName>file4.c</fileName>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                            <fileName>...</fileName>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        </fileNames>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    </source>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash;                    &lt;!&ndash; additional include path &ndash;&gt;&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    <source>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <directory>...</directory>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    </source>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash;                    &lt;!&ndash; additional system include path &ndash;&gt;&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    <source>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <directory>...</directory>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                        <dependencyAnalysisParticipation>false</dependencyAnalysisParticipation>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                    </source>&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                </sources>&ndash;&gt;-->
+
+            <!--                            &lt;!&ndash;                &lt;!&ndash; deploy the accompany .lib file as well &ndash;&gt;&ndash;&gt;-->
+            <!--                            &lt;!&ndash;                <linkerSecondaryOutputExtensions>lib</linkerSecondaryOutputExtensions >&ndash;&gt;-->
+            <!--                        </configuration>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <!-- here the phase you need -->
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${native.dir}/darwin</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${native.build.dir}</directory>
+                                    <includes>
+                                        <include>*.dylib</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <!--                    <execution>-->
+                    <!--                        <id>generate-headers</id>-->
+                    <!--                        <phase>generate-sources</phase>-->
+                    <!--                        <goals>-->
+                    <!--                            <goal>run</goal>-->
+                    <!--                        </goals>-->
+                    <!--                        <configuration>-->
+                    <!--                            <target>-->
+                    <!--                                <javac>-->
+                    <!--                                    <args><arg>-h</arg></args>-->
+                    <!--                                </javac>-->
+                    <!--                            </target>-->
+                    <!--                        </configuration>-->
+                    <!--                    </execution>-->
+                    <execution>
+                        <id>chmod-dylibs</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <chmod perm="ugo+rx">
+                                    <fileset dir="${native.dir}">
+                                        <include name="**/*.dll" />
+                                        <include name="**/*.so" />
+                                        <include name="**/*.dylib" />
+                                    </fileset>
+                                </chmod>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-h</arg>
+                        <arg>${project.build.directory}/generated-sources</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.1</version>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <argLine>-Djava.library.path=${native.dir}/darwin</argLine>
+                    <!--                    <systemProperties combine.children="append">-->
+                    <!--                    </systemProperties>-->
+                    <environmentVariables>
+                        <RUST_LOG>wasmtime=debug,wasmtime-jni=debug</RUST_LOG>
+                        <RUST_BACKTRACE>full</RUST_BACKTRACE>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>2.5.2</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>2.8.2</version>
+            </plugin>
+            <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
+            <plugin>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.9.1</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>3.1.1</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>
