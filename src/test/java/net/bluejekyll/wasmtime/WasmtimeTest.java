@@ -2,6 +2,10 @@ package net.bluejekyll.wasmtime;
 
 import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.util.function.Function;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,7 +43,7 @@ public class WasmtimeTest {
     }
 
     @Test
-    public void testWasmWorsAfterException() throws Exception {
+    public void testWasmWorksAfterException() throws Exception {
         byte[] bad = {0, 1, 2};
 
         Wasmtime wasm = new Wasmtime();
@@ -71,6 +75,25 @@ public class WasmtimeTest {
         try (WasmEngine engine = wasm.newWasmEngine();
              WasmModule module = engine.newModule(good.getBytes())) {
             System.out.println("module compiled");
+        }
+    }
+
+    public final void helloWorld() {
+        System.out.println("Hello World");
+    }
+
+    @Test
+    public void testFunction() throws Exception {
+        Wasmtime wasm = new Wasmtime();
+        try (WasmEngine engine = wasm.newWasmEngine();
+             WasmStore store = engine.newStore()) {
+
+            Method method = this.getClass().getMethod("helloWorld", new Class[]{});
+            WasmFunction func = WasmFunction.newFunc(store, method, this);
+
+            try (func) {
+                System.out.println("new store succeeded");
+            }
         }
     }
 }

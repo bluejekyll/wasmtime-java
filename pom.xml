@@ -12,25 +12,25 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
 
         <native.build.dir>${project.basedir}/target/native</native.build.dir>
         <native.dir>${project.build.directory}/native-resources/native</native.dir>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>com.github.jnr</groupId>
-            <artifactId>jnr-ffi</artifactId>
-            <version>2.2.0</version>
-        </dependency>
         <!-- TESTING -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>2.0.1</version>
         </dependency>
     </dependencies>
 
@@ -194,10 +194,12 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.1</version>
+                <version>3.0.0-M5</version>
                 <configuration>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <!-- Activate the use of TCP to transmit events to the plugin -->
+                    <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
                     <argLine>-Djava.library.path=${native.dir}/darwin</argLine>
                     <!--                    <systemProperties combine.children="append">-->
                     <!--                    </systemProperties>-->

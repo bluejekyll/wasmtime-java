@@ -1,13 +1,5 @@
 package net.bluejekyll.wasmtime;
 
-import jnr.ffi.LibraryLoader;
-import jnr.ffi.Pointer;
-import jnr.ffi.Runtime;
-import jnr.ffi.Struct;
-import jnr.ffi.annotations.In;
-import jnr.ffi.annotations.Out;
-import jnr.ffi.byref.PointerByReference;
-
 import java.nio.ByteBuffer;
 
 /**
