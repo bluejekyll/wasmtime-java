@@ -1,6 +1,9 @@
 package net.bluejekyll.wasmtime;
 
-public abstract class AbstractOpaquePtr {
+import javax.annotation.concurrent.NotThreadSafe;
+
+@NotThreadSafe
+public abstract class AbstractOpaquePtr implements AutoCloseable {
     private final long ptr;
 
     protected AbstractOpaquePtr(long ptr) {
@@ -9,5 +12,12 @@ public abstract class AbstractOpaquePtr {
 
     protected long getPtr() {
         return this.ptr;
+    }
+
+    protected abstract void free(long ptr);
+
+    @Override
+    public void close() {
+        this.free(this.ptr);
     }
 }

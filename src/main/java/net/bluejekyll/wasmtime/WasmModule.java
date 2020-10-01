@@ -1,8 +1,6 @@
 package net.bluejekyll.wasmtime;
 
-import jnr.ffi.Pointer;
-
-public class WasmModule extends AbstractOpaquePtr implements AutoCloseable {
+public class WasmModule extends AbstractOpaquePtr {
     WasmModule(long ptr) {
         super(ptr);
     }
@@ -10,7 +8,7 @@ public class WasmModule extends AbstractOpaquePtr implements AutoCloseable {
     private static native void freeModule(long ptr);
     
     @Override
-    public void close() {
-        freeModule(super.getPtr());
+    public void free(long ptr) {
+        WasmModule.freeModule(ptr);
     }
 }
