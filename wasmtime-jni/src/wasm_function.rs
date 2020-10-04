@@ -9,7 +9,7 @@ use jni::JNIEnv;
 use log::{debug, warn};
 use wasmtime::{Caller, Engine, Func, FuncType, Module, Store, Trap, Val};
 
-use crate::opaque_ptr::{self, OpaquePtr};
+use crate::opaque_ptr::OpaquePtr;
 use crate::wasm_exception;
 use crate::wasm_value;
 
@@ -24,7 +24,7 @@ use crate::wasm_value;
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
     env: JNIEnv<'j>,
     _class: JClass<'j>,
-    store_ptr: jlong,
+    store: OpaquePtr<'j, Store>,
     method: JObject<'j>,
     obj: JObject<'j>,
     return_ty: JObject<'j>,
@@ -80,9 +80,8 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
         Ok(())
     };
 
-    let store: &Store = unsafe { opaque_ptr::ref_from_jlong(&env, store_ptr) };
-    let func = Func::new(store, FuncType::new(Box::new([]), Box::new([])), func);
-    opaque_ptr::to_jlong(func)
+    let func = Func::new(&store, FuncType::new(Box::new([]), Box::new([])), func);
+    OpaquePtr::from(func).make_opaque()
 }
 
 /// /*
@@ -93,14 +92,12 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
 ///  JNIEXPORT void JNICALL Java_net_bluejekyll_wasmtime_WasmFunction_freeFunc
 ///  (JNIEnv *, jclass, jlong);
 #[no_mangle]
-pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_freeFunc(
-    _env: JNIEnv,
-    _class: JClass,
-    ptr: jlong,
+pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_freeFunc<'j>(
+    _env: JNIEnv<'j>,
+    _class: JClass<'j>,
+    func: OpaquePtr<'j, Func>,
 ) {
-    unsafe {
-        drop(opaque_ptr::box_from_jlong::<Func>(ptr));
-    }
+    drop(func.take());
 }
 
 /// /*

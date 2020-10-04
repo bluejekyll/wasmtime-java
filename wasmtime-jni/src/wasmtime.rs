@@ -5,7 +5,7 @@ use jni::JNIEnv;
 use log::info;
 use wasmtime::Engine;
 
-use crate::opaque_ptr;
+use crate::opaque_ptr::OpaquePtr;
 
 /// /*
 ///  * Class:     net_bluejekyll_wasmtime_Wasmtime
@@ -30,5 +30,5 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_Wasmtime_newWasmEngineNtv(
 
     // Box it...
     let engine = Engine::default();
-    opaque_ptr::to_jlong(engine)
+    OpaquePtr::from(engine).make_opaque()
 }

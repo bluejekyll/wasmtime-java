@@ -7,7 +7,7 @@ use jni::JNIEnv;
 use log::{debug, warn};
 use wasmtime::{Caller, Engine, Func, FuncType, Instance, Module, Store, Trap, Val};
 
-use crate::opaque_ptr;
+use crate::opaque_ptr::OpaquePtr;
 
 /// /*
 ///  * Class:     net_bluejekyll_wasmtime_WasmInstance
@@ -20,9 +20,7 @@ use crate::opaque_ptr;
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmInstance_freeInstance<'j>(
     env: JNIEnv<'j>,
     _class: JClass<'j>,
-    ptr: jlong,
+    instance: OpaquePtr<'j, Instance>,
 ) {
-    unsafe {
-        drop(opaque_ptr::box_from_jlong::<Instance>(ptr));
-    }
+    drop(instance.take());
 }

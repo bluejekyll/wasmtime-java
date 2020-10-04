@@ -4,7 +4,7 @@ use jni::JNIEnv;
 use log::{debug, warn};
 use wasmtime::{Engine, Module, Store};
 
-use crate::opaque_ptr;
+use crate::opaque_ptr::OpaquePtr;
 
 /// /*
 ///  * Class:     net_bluejekyll_wasmtime_WasmEngine
@@ -14,15 +14,12 @@ use crate::opaque_ptr;
 ///  JNIEXPORT void JNICALL Java_net_bluejekyll_wasmtime_WasmEngine_freeEngine
 ///  (JNIEnv *, jclass, jlong);
 #[no_mangle]
-pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_freeEngine(
-    _env: JNIEnv,
-    _class: JClass,
-    ptr: jlong,
+pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_freeEngine<'j>(
+    _env: JNIEnv<'j>,
+    _class: JClass<'j>,
+    engine: OpaquePtr<'j, Engine>,
 ) {
-    unsafe {
-        let engine = opaque_ptr::box_from_jlong::<Engine>(ptr);
-        drop(engine);
-    }
+    drop(engine.take());
 }
 
 /// /*
@@ -33,14 +30,13 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_freeEngine(
 ///  JNIEXPORT jlong JNICALL Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv
 ///  (JNIEnv *, jclass, jlong);
 #[no_mangle]
-pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv(
-    env: JNIEnv,
-    _class: JClass,
-    engine_ptr: jlong,
+pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv<'j>(
+    env: JNIEnv<'j>,
+    _class: JClass<'j>,
+    engine: OpaquePtr<'j, Engine>,
 ) -> jlong {
-    let engine: &Engine = unsafe { opaque_ptr::ref_from_jlong(&env, engine_ptr) };
-    let store = Store::new(engine);
-    opaque_ptr::to_jlong(store)
+    let store = Store::new(&engine);
+    OpaquePtr::from(store).make_opaque()
 }
 
 /// /*
@@ -54,11 +50,9 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv(
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newModuleNtv(
     env: JNIEnv,
     _class: JClass,
-    engine_ptr: jlong,
+    engine: OpaquePtr<Engine>,
     wat: JByteBuffer,
 ) -> jlong {
-    let engine: &Engine = unsafe { opaque_ptr::ref_from_jlong(&env, engine_ptr) };
-
     debug!("getting wasm bytes");
     // let wat_bytes: Vec<u8> = match env.convert_byte_array(wat) {
     //     Err(err) => {
@@ -79,7 +73,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newModuleNtv(
     };
 
     debug!("compiling wasm module from bytes: {}", wat_bytes.len());
-    let module = match Module::new(engine, wat_bytes) {
+    let module = match Module::new(&engine, wat_bytes) {
         Err(err) => {
             env.throw_new("net/bluejekyll/wasmtime/WasmtimeException", err.to_string())
                 .expect("failed to throw exception");
@@ -88,5 +82,5 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newModuleNtv(
         Ok(ok) => ok,
     };
 
-    opaque_ptr::to_jlong(module)
+    OpaquePtr::from(module).make_opaque()
 }

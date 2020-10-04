@@ -3,7 +3,7 @@ use jni::sys::jlong;
 use jni::JNIEnv;
 use wasmtime::Store;
 
-use crate::opaque_ptr;
+use crate::opaque_ptr::OpaquePtr;
 
 // TODO: consider requiring a background thread per store?
 
@@ -15,13 +15,10 @@ use crate::opaque_ptr;
 ///  JNIEXPORT void JNICALL Java_net_bluejekyll_wasmtime_WasmStore_freeStore
 ///  (JNIEnv *, jclass, jlong);
 #[no_mangle]
-pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmStore_freeStore(
-    _env: JNIEnv,
-    _class: JClass,
-    ptr: jlong,
+pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmStore_freeStore<'j>(
+    _env: JNIEnv<'j>,
+    _class: JClass<'j>,
+    store: OpaquePtr<'j, Store>,
 ) {
-    unsafe {
-        let store = opaque_ptr::box_from_jlong::<Store>(ptr);
-        drop(store);
-    }
+    drop(store.take());
 }
