@@ -22,3 +22,6 @@
 .rls.toml
 rls/**
 *.log
+
+.settings/**
+.classpath
