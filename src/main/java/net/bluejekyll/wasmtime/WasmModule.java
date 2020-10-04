@@ -2,13 +2,8 @@ package net.bluejekyll.wasmtime;
 
 public class WasmModule extends AbstractOpaquePtr {
     WasmModule(long ptr) {
-        super(ptr);
+        super(ptr, WasmModule::freeModule);
     }
 
     private static native void freeModule(long ptr);
-    
-    @Override
-    public void free(long ptr) {
-        WasmModule.freeModule(ptr);
-    }
 }

@@ -11,6 +11,7 @@ name = "wasmtime_jni"
 crate_type = ["cdylib"]
 
 [dependencies]
+anyhow = "1.0.32"
 flexi_logger = "0.16.1"
 jni = "0.17.0"
 log = "0.4.11"

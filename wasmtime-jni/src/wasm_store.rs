@@ -5,6 +5,8 @@ use wasmtime::Store;
 
 use crate::opaque_ptr;
 
+// TODO: consider requiring a background thread per store?
+
 /// /*
 ///  * Class:     net_bluejekyll_wasmtime_WasmStore
 ///  * Method:    freeStore

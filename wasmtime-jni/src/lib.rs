@@ -1,6 +1,10 @@
 mod opaque_ptr;
 mod wasm_engine;
+mod wasm_exception;
 mod wasm_function;
+mod wasm_instance;
+mod wasm_linker;
 mod wasm_module;
 mod wasm_store;
+mod wasm_value;
 mod wasmtime;
