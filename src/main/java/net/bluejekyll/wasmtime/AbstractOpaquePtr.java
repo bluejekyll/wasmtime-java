@@ -1,23 +1,44 @@
 package net.bluejekyll.wasmtime;
 
 import javax.annotation.concurrent.NotThreadSafe;
+import java.lang.ref.Cleaner;
+import java.util.function.Consumer;
 
-@NotThreadSafe
 public abstract class AbstractOpaquePtr implements AutoCloseable {
-    private final long ptr;
+    private static final Cleaner cleaner = Cleaner.create();
 
-    protected AbstractOpaquePtr(long ptr) {
+    private final long ptr;
+    private final Cleaner.Cleanable cleanable;
+
+    /**
+     * @param ptr  a valid, non-null pointer to the underlying native type
+     * @param free a function to free the pointer, this must be a static method
+     */
+    protected AbstractOpaquePtr(long ptr, Consumer<Long> free) {
         this.ptr = ptr;
+        this.cleanable = cleaner.register(this, new Freedom(ptr, free));
     }
 
-    protected long getPtr() {
+    private static class Freedom implements Runnable {
+        private final long ptr;
+        private final Consumer<Long> free;
+
+        Freedom(long ptr, Consumer<Long> free) {
+            this.ptr = ptr;
+            this.free = free;
+        }
+
+        public void run() {
+            this.free.accept(this.ptr);
+        }
+    }
+
+    protected final long getPtr() {
         return this.ptr;
     }
 
-    protected abstract void free(long ptr);
-
     @Override
     public void close() {
-        this.free(this.ptr);
+        this.cleanable.clean();
     }
 }

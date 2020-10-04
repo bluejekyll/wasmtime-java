@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 @NotThreadSafe
 public class WasmEngine extends AbstractOpaquePtr  {
     WasmEngine(long ptr) {
-        super(ptr);
+        super(ptr, WasmEngine::freeEngine);
     }
 
     private static native void freeEngine(long ptr);
@@ -30,9 +30,5 @@ public class WasmEngine extends AbstractOpaquePtr  {
         ByteBuffer buf = ByteBuffer.allocateDirect(wasm_bytes.length);
         buf.put(wasm_bytes);
         return new WasmModule(newModuleNtv(super.getPtr(), buf));
-    }
-
-    public void free(long ptr) {
-        WasmEngine.freeEngine(ptr);
     }
 }
