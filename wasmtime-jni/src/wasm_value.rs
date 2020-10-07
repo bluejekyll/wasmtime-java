@@ -53,6 +53,7 @@ pub fn from_java_class<'j>(env: &JNIEnv<'j>, clazz: JClass<'j>) -> Result<Option
 }
 
 pub fn from_java<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<Val, Error> {
+    assert!(!obj.is_null(), "obj should not be null for conversion");
     match obj {
         _ if env.is_instance_of(obj, LONG)? => {
             let jvalue = env.call_method(obj, "longValue", "()J", &[])?;
@@ -78,9 +79,15 @@ pub fn from_java<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<Val, Error> {
     }
 }
 
-pub fn from_jvalue<'j>(env: &JNIEnv<'j>, val: JValue) -> Result<Val, Error> {
+pub fn from_jvalue<'j>(env: &JNIEnv<'j>, val: JValue) -> Result<Option<Val>, Error> {
     let val = match val {
-        JValue::Object(obj) => return from_java(env, obj),
+        JValue::Object(obj) => {
+            if obj.is_null() {
+                return Ok(None);
+            } else {
+                return from_java(env, obj).map(Some);
+            }
+        }
         JValue::Long(v) => Val::I64(v),
         JValue::Int(v) => Val::I32(v),
         JValue::Double(v) => Val::F64(f64::to_bits(v)),
@@ -88,7 +95,7 @@ pub fn from_jvalue<'j>(env: &JNIEnv<'j>, val: JValue) -> Result<Val, Error> {
         _ => return Err(anyhow!("Unsuppored return type: {}", val.type_name())),
     };
 
-    Ok(val)
+    Ok(Some(val))
 }
 
 pub fn to_java<'j, 'w: 'j>(env: &JNIEnv<'j>, val: &'w Val) -> Result<JObject<'j>, Error> {

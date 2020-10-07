@@ -5,7 +5,8 @@ import java.nio.ByteBuffer;
 /**
  * Wasmtime
  * <p>
- * A wrapper over the FFI of the Rust wasmtime library, which uses Wasmtime for the WASM runtime
+ * A wrapper over the FFI of the Rust wasmtime library, which uses Wasmtime for
+ * the WASM runtime
  */
 public class Wasmtime {
     static {
@@ -15,7 +16,8 @@ public class Wasmtime {
         System.loadLibrary("wasmtime_jni");
     }
 
-    public Wasmtime() {}
+    public Wasmtime() {
+    }
 
     private static native long newWasmEngineNtv();
 
@@ -27,4 +29,3 @@ public class Wasmtime {
         System.out.println("Hello World!");
     }
 }
-

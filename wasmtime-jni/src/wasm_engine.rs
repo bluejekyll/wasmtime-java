@@ -53,15 +53,6 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newModuleNtv(
     engine: OpaquePtr<Engine>,
     wat: JByteBuffer,
 ) -> jlong {
-    debug!("getting wasm bytes");
-    // let wat_bytes: Vec<u8> = match env.convert_byte_array(wat) {
-    //     Err(err) => {
-    //         env.throw_new("net/bluejekyll/wasmtime/WasmtimeException", err.to_string())
-    //             .expect("failed to throw exception");
-    //         return 0;
-    //     }
-    //     Ok(ok) => ok,
-    // };
     let wat_bytes = match env.get_direct_buffer_address(wat) {
         Err(err) => {
             warn!("Error accessing byte buffer: {}", err);

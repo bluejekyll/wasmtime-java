@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use std::convert::TryFrom;
 
 use anyhow::{anyhow, Context, Error};
-use jni::objects::{JClass, JMethodID, JObject, JValue};
+use jni::objects::{JClass, JMethodID, JObject, JString, JValue};
 use jni::signature::JavaType;
 use jni::sys::{jlong, jobject, jobjectArray};
 use jni::JNIEnv;
@@ -48,6 +49,8 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     .map_err(Error::from)
                     .context("Error accessing JNIEnv in WASM")?;
 
+                // get the invoke method on the method, the result is always Object
+                let ret = JavaType::Object(String::from("java/lang/Object"));
                 let method_id: JMethodID = match env.get_method_id(
                     "java/lang/reflect/Method",
                     "invoke",
@@ -82,9 +85,9 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                         .context("Failed to add value to array?")?;
                 }
 
+                // setup the arguments for the call
                 let method_args = JObject::from(method_args);
 
-                let ret = JavaType::Object(String::from("java/lang/Object"));
                 let val = env
                     .call_method_unchecked(
                         method.as_obj(),
@@ -95,14 +98,69 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     .map_err(Error::from)
                     .context("Call to Java method failed!")?;
 
-                let val = wasm_value::from_jvalue(&env, val)?;
-                if let Some(v) = outputs.get_mut(0) {
-                    *v = val;
+                // Check if Java threw an exception.
+                if env
+                    .exception_check()
+                    .context("Failed to check for exception")?
+                {
+                    let exception = env
+                        .exception_occurred()
+                        .context("Failed to get exception")?;
+
+                    let clazz = env
+                        .get_object_class(exception)
+                        .context("Failed to get exceptions class")?;
+                    let clazz = wasm_value::get_class_name(&env, clazz)
+                        .context("Failed to lookup class name")?;
+
+                    // TODO: get entire thread
+                    let message = env
+                        .call_method(exception, "getMessage", "()Ljava/lang/String", &[])
+                        .context("Gailed to getMessage on Throwable")?;
+
+                    let message = message
+                        .l()
+                        .context("Expected a String Object from Throwable.getMessage")?;
+
+                    let err = if !message.is_null() {
+                        let message = JString::from(message);
+                        let message = env.get_string(message).with_context(|| {
+                            format!("Failed to get_string for Exception: {}", clazz)
+                        })?;
+                        let message = Cow::from(&message);
+
+                        warn!("Method call threw an exception: {}: {}", clazz, message);
+                        anyhow!("Method call threw an exception: {}: {}", clazz, message)
+                    } else {
+                        warn!("Method call threw an exception: {}", clazz);
+                        anyhow!("Method call threw an exception: {}", clazz)
+                    };
+
+                    // clear the exception
+                    env.exception_clear().context("Failed to clear exception")?;
+                    return Err(err.into());
                 }
 
-                // FIXME: check for exception
-                // FIXME: handle exception by converting to error
-                // FIXME: return Trap error in case of exception
+                // Now get the return value
+                let val = wasm_value::from_jvalue(&env, val)?;
+                let result = outputs.get_mut(0);
+
+                match (val, result) {
+                    (Some(val), Some(result)) => {
+                        debug!("associating {:?} with result", val);
+                        *result = val;
+                    }
+                    (None, Some(result)) => {
+                        debug!("associating null with result");
+                        *result = Val::null();
+                    }
+                    (Some(val), None) => {
+                        warn!("WASM expected no result, but Java supplied: {:?}", val);
+                    }
+                    (None, None) => {
+                        debug!("returning no result");
+                    }
+                }
 
                 Ok(())
             };
