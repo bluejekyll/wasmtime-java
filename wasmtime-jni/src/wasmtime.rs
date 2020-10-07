@@ -21,7 +21,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_Wasmtime_newWasmEngineNtv(
 ) -> jlong {
     Logger::with_env_or_str("wasmtime=info,wasmtime-jni=info")
         .log_to_file()
-        .directory("target")
+        .directory("target/wasm-logs")
         .format(opt_format)
         .start()
         .ok();

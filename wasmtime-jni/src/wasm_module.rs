@@ -1,7 +1,6 @@
 use jni::objects::JClass;
-use jni::sys::jlong;
 use jni::JNIEnv;
-use wasmtime::{Engine, Module, Store};
+use wasmtime::Module;
 
 use crate::opaque_ptr::OpaquePtr;
 

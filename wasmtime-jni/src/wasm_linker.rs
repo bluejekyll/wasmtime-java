@@ -1,12 +1,9 @@
 use std::borrow::Cow;
-use std::sync::Arc;
 
-use jni::objects::{JByteBuffer, JClass, JList, JMethodID, JObject, JString, JValue};
-use jni::signature::JavaType;
-use jni::sys::{jbyteArray, jclass, jlong, jobject, jobjectArray, jstring};
+use jni::objects::{JClass, JString};
+use jni::sys::jlong;
 use jni::JNIEnv;
-use log::{debug, warn};
-use wasmtime::{Caller, Engine, Func, FuncType, Instance, Linker, Module, Store, Trap, Val};
+use wasmtime::{Func, Linker, Module};
 
 use crate::opaque_ptr::OpaquePtr;
 use crate::wasm_exception;
@@ -70,7 +67,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_instantiateNtv<'j
     linker: OpaquePtr<'j, Linker>,
     module: OpaquePtr<'j, Module>,
 ) -> jlong {
-    wasm_exception::attempt(&env, |env| {
+    wasm_exception::attempt(&env, |_env| {
         let instance = linker.instantiate(&module)?;
         Ok(OpaquePtr::from(instance).make_opaque())
     })

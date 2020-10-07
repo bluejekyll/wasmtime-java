@@ -8,7 +8,10 @@ public class WasmStore extends AbstractOpaquePtr {
     }
 
     private static native void freeStore(long ptr);
-    private static native long newLinker(long store_ptr);
 
-    
+    private static native long newLinkerNtv(long store_ptr);
+
+    public WasmLinker newLinker() {
+        return new WasmLinker(WasmStore.newLinkerNtv(this.getPtr()));
+    }
 }

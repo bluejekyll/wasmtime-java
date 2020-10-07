@@ -1,5 +1,5 @@
 use jni::objects::{JByteBuffer, JClass};
-use jni::sys::{jbyteArray, jlong, jobject};
+use jni::sys::jlong;
 use jni::JNIEnv;
 use log::{debug, warn};
 use wasmtime::{Engine, Module, Store};
@@ -31,7 +31,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_freeEngine<'j>(
 ///  (JNIEnv *, jclass, jlong);
 #[no_mangle]
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv<'j>(
-    env: JNIEnv<'j>,
+    _env: JNIEnv<'j>,
     _class: JClass<'j>,
     engine: OpaquePtr<'j, Engine>,
 ) -> jlong {

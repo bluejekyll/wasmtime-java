@@ -3,7 +3,6 @@ use std::ops::{Deref, DerefMut};
 use std::{any, mem};
 
 use jni::sys::jlong;
-use jni::JNIEnv;
 use log::debug;
 
 /// This borrows the pointer stored at jlong, not taking ownership
