@@ -17,15 +17,12 @@ public class Wasmtime {
     }
 
     public Wasmtime() {
+        // anything to do here?
     }
 
     private static native long newWasmEngineNtv();
 
     public WasmEngine newWasmEngine() {
         return new WasmEngine(newWasmEngineNtv());
-    }
-
-    public static void main(String[] args) {
-        System.out.println("Hello World!");
     }
 }

@@ -110,11 +110,11 @@ pub fn to_java<'j, 'w: 'j>(env: &JNIEnv<'j>, val: &'w Val) -> Result<JObject<'j>
         }
         Val::F64(val) => {
             let jvalue = JValue::Double(f64::from_bits(*val));
-            env.new_object(INTEGER, "(D)V", &[jvalue])
+            env.new_object(DOUBLE, "(D)V", &[jvalue])
         }
         Val::F32(val) => {
             let jvalue = JValue::Float(f32::from_bits(*val));
-            env.new_object(INTEGER, "(F)V", &[jvalue])
+            env.new_object(FLOAT, "(F)V", &[jvalue])
         }
         _ => return Err(anyhow!("Unsupported WASM type: {}", val.ty())),
     };

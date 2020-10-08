@@ -1,8 +1,7 @@
-use std::borrow::Cow;
 use std::convert::TryFrom;
 
 use anyhow::{anyhow, Context, Error};
-use jni::objects::{JClass, JMethodID, JObject, JString, JValue};
+use jni::objects::{JClass, JMethodID, JObject, JValue};
 use jni::signature::JavaType;
 use jni::sys::{jlong, jobject, jobjectArray};
 use jni::JNIEnv;
@@ -96,50 +95,27 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                         &[JValue::Object(obj.as_obj()), JValue::Object(method_args)],
                     )
                     .map_err(Error::from)
-                    .context("Call to Java method failed!")?;
+                    .context("Call to Java method failed!");
 
                 // Check if Java threw an exception.
-                if env
-                    .exception_check()
-                    .context("Failed to check for exception")?
+                if val.is_err()
+                    && env
+                        .exception_check()
+                        .context("Failed to check for exception")?
                 {
+                    // get the exception
                     let exception = env
                         .exception_occurred()
                         .context("Failed to get exception")?;
-
-                    let clazz = env
-                        .get_object_class(exception)
-                        .context("Failed to get exceptions class")?;
-                    let clazz = wasm_value::get_class_name(&env, clazz)
-                        .context("Failed to lookup class name")?;
-
-                    // TODO: get entire thread
-                    let message = env
-                        .call_method(exception, "getMessage", "()Ljava/lang/String", &[])
-                        .context("Gailed to getMessage on Throwable")?;
-
-                    let message = message
-                        .l()
-                        .context("Expected a String Object from Throwable.getMessage")?;
-
-                    let err = if !message.is_null() {
-                        let message = JString::from(message);
-                        let message = env.get_string(message).with_context(|| {
-                            format!("Failed to get_string for Exception: {}", clazz)
-                        })?;
-                        let message = Cow::from(&message);
-
-                        warn!("Method call threw an exception: {}: {}", clazz, message);
-                        anyhow!("Method call threw an exception: {}: {}", clazz, message)
-                    } else {
-                        warn!("Method call threw an exception: {}", clazz);
-                        anyhow!("Method call threw an exception: {}", clazz)
-                    };
-
-                    // clear the exception
+                    // clear the exception so that we can make additional java calls
                     env.exception_clear().context("Failed to clear exception")?;
+
+                    let err = wasm_exception::exception_to_err(&env, exception)?;
                     return Err(err.into());
                 }
+
+                // unwrap the exception
+                let val = val?;
 
                 // Now get the return value
                 let val = wasm_value::from_jvalue(&env, val)?;
@@ -242,6 +218,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
             let len = usize::try_from(len)?;
             let mut wasm_args = Vec::with_capacity(len);
 
+            // we need to convert all the parameters to WASM vals for the call
             debug!("got {} args for function", len);
             for i in 0..len {
                 let obj = env
@@ -255,7 +232,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
                 wasm_args.push(val);
             }
 
-            // we need to convert all the parameters to WASM vals for the call
+            // call the function
             let val = func
                 .call(&wasm_args)
                 .with_context(|| format!("failed to execute wasm function: {:?}", *func))?;
