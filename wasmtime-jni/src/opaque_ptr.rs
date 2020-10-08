@@ -1,6 +1,6 @@
+use std::any;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::{any, mem};
 
 use jni::sys::jlong;
 use log::debug;
@@ -20,15 +20,15 @@ impl<'a, T> OpaquePtr<'a, T> {
         assert_ne!(self.ptr, 0, "cannot deref null");
         let obj = self.ptr as *const T;
 
-        unsafe { mem::transmute(obj) }
+        unsafe { &*obj }
     }
 
     pub fn as_mut(&mut self) -> &mut T {
         debug!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
         assert_ne!(self.ptr, 0, "cannot deref null");
-        let obj = self.ptr as *const T;
+        let obj = self.ptr as *mut T;
 
-        unsafe { mem::transmute(obj) }
+        unsafe { &mut *obj }
     }
 
     /// This takes ownership of the pointer stored at jlong.

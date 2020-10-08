@@ -13,7 +13,7 @@ where
     R: Default,
     F: FnOnce(&JNIEnv) -> Result<R, Error>,
 {
-    attempt_or_else(env, || R::default(), f)
+    attempt_or_else(env, R::default, f)
 }
 
 #[track_caller]

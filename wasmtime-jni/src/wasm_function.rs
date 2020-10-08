@@ -75,7 +75,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     .context("Could not create empty array?")?;
 
                 // set the parameters
-                for (i, val) in inputs.into_iter().enumerate() {
+                for (i, val) in inputs.iter().enumerate() {
                     let jvalue = wasm_value::to_java(&env, val)?;
                     debug!("Setting parameter {}: {:?} as {:?}", i, val, jvalue);
 
@@ -141,7 +141,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                 Ok(())
             };
 
-        let ret = wasm_value::from_java_class(&env, return_ty.into())
+        let ret = wasm_value::from_java_class(&env, return_ty)
             .context("error converting type to wasm")?;
         debug!(
             "Mapping return value from {:?} to {:?}",

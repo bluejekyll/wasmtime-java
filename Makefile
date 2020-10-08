@@ -1,4 +1,4 @@
-WASMTIME_TARGET_DIR := ${PWD}/wasmtime-jni/target
+WASMTIME_TARGET_DIR := ${PWD}/target
 NATIVE_TARGET_DIR := ${PWD}/target/native
 
 .PHONY: clean
