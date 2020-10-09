@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class WasmStoreTest {
     @Test
-    public void testNewWasmStore() {
+    public void testNewWasmStore() throws Exception {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
             System.out.println("new store succeeded");

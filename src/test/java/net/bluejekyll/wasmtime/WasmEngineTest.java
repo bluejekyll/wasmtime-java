@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class WasmEngineTest {
     @Test
-    public void testNewWasmEngine() {
+    public void testNewWasmEngine() throws Exception {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine()) {
             System.out.println("new engine succeeded");

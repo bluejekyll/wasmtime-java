@@ -16,7 +16,7 @@
         <maven.compiler.target>11</maven.compiler.target>
 
         <native.build.dir>${project.basedir}/target/native</native.build.dir>
-        <native.dir>${project.build.directory}/native-resources/native</native.dir>
+        <native.dir>${project.build.outputDirectory}/NATIVE</native.dir>
     </properties>
 
     <dependencies>
@@ -129,12 +129,14 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${native.dir}/darwin</outputDirectory>
+                            <outputDirectory>${native.dir}</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${native.build.dir}</directory>
                                     <includes>
-                                        <include>*.dylib</include>
+                                        <include>**/*.dll</include>
+                                        <include>**/*.dylib</include>
+                                        <include>**/*.so</include>
                                     </includes>
                                     <filtering>false</filtering>
                                 </resource>
@@ -200,7 +202,7 @@
                     <reuseForks>true</reuseForks>
                     <!-- Activate the use of TCP to transmit events to the plugin -->
                     <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
-                    <argLine>-Djava.library.path=${native.dir}/darwin</argLine>
+                    <argLine>-Djava.library.path=${native.dir}/${env.PLATFORM}/${env.ARCH}</argLine>
                     <!--                    <systemProperties combine.children="append">-->
                     <!--                    </systemProperties>-->
                     <environmentVariables>

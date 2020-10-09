@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  */
 public class WasmtimeTest {
     @Test
-    public void testWasmtimeLibraryLoads() {
+    public void testWasmtimeLibraryLoads() throws Exception {
         new Wasmtime();
     }
 }
