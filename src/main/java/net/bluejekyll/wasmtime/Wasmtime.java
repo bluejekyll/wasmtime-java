@@ -28,6 +28,7 @@ public class Wasmtime {
             System.loadLibrary(NATIVE_LIB);
             System.out.printf("loadLibrary succeeded for %s%n", NATIVE_LIB);
             libraryLoaded = true;
+            return;
         } catch (UnsatisfiedLinkError e) {
             System.out.print("Failed to loadLibrary %s, will try from classpath");
         }
@@ -50,12 +51,16 @@ public class Wasmtime {
         }
 
         final File libFile = new File(tmpDir, libName);
+        if (libFile.exists()) {
+            System.out.printf("Temporary library already exists %s, did not replace%n", libFile);
+            libraryLoaded = true;
+            return;
+        }
 
-        try (
-                OutputStream os = new FileOutputStream(libFile, false);
-                InputStream in = ClassLoader.getSystemResourceAsStream(libPath);
-        ) {
-            if (in == null) throw new RuntimeException(String.format("could not find %s in classpath", libPath));
+        try (OutputStream os = new FileOutputStream(libFile, false);
+                InputStream in = ClassLoader.getSystemResourceAsStream(libPath);) {
+            if (in == null)
+                throw new RuntimeException(String.format("could not find %s in classpath", libPath));
             long length = in.transferTo(os);
             System.out.printf("Created temporary library sized %d at %s%n", length, libFile);
             os.flush();
