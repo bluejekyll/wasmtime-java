@@ -1,12 +1,15 @@
 ifeq (${OS}, Windows_NT)
     PLATFORM = Windows
-	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
+	ifeq ($(PROCESSOR_ARCHITEW6432), AMD64)
         ARCH = x86_64
-    else ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-        ARCH = x86_64
-    else ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-        ARCH = i386
-    endif
+    else
+	    ifeq ($(PROCESSOR_ARCHITECTURE), AMD64)
+            ARCH = x86_64
+        endif
+		ifeq ($(PROCESSOR_ARCHITECTURE), x86)
+            ARCH = i386
+        endif
+	endif
 else
     PLATFORM = $(shell uname -s)
 	ARCH = $(shell uname -m)
