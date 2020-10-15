@@ -22,15 +22,12 @@ public class Wasmtime {
         }
 
         try {
-            // This actually loads the shared object that we'll be creating.
-            // The actual location of the .so or .dll may differ based on your
-            // platform.
             System.loadLibrary(NATIVE_LIB);
             System.out.printf("loadLibrary succeeded for %s%n", NATIVE_LIB);
             libraryLoaded = true;
             return;
         } catch (UnsatisfiedLinkError e) {
-            System.out.print("Failed to loadLibrary %s, will try from classpath");
+            System.out.printf("Failed to loadLibrary %s, will try from classpath%n", NATIVE_LIB);
         }
 
         String osName = System.getProperty("os.name");
@@ -51,11 +48,14 @@ public class Wasmtime {
         }
 
         final File libFile = new File(tmpDir, libName);
-        if (libFile.exists()) {
-            System.out.printf("Temporary library already exists %s, did not replace%n", libFile);
-            libraryLoaded = true;
-            return;
-        }
+        final String path = libFile.getAbsolutePath();
+
+        // FIXME: add back...
+        // if (libFile.exists()) {
+        //     System.out.printf("Temporary library already exists %s, did not replace%n", libFile);
+        //     loadLibrary(path);
+        //     return;
+        // }
 
         try (OutputStream os = new FileOutputStream(libFile, false);
                 InputStream in = ClassLoader.getSystemResourceAsStream(libPath);) {
@@ -66,19 +66,23 @@ public class Wasmtime {
             os.flush();
         } catch (Exception e) {
             System.err.printf("Failed to write %s to %s library: %s%n", libPath, libFile, e.getMessage());
+            libraryLoaded = false;
             throw new RuntimeException(e);
         }
 
-        final String path = libFile.getAbsolutePath();
+        loadLibrary(path);
+        return;
+    }
+
+    private static void loadLibrary(String path) {
         try {
-            // This actually loads the shared object that we'll be creating.
-            // The actual location of the .so or .dll may differ based on your
-            // platform.
             System.load(path);
-            System.out.printf("load succeeded for %s%n", path);
+            System.out.printf("Load succeeded for %s%n", path);
             libraryLoaded = true;
         } catch (UnsatisfiedLinkError e) {
             System.out.printf("Failed to load %s%n", path);
+            libraryLoaded = false;
+            throw e;
         }
     }
 

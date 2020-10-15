@@ -73,5 +73,15 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newModuleNtv(
         Ok(ok) => ok,
     };
 
+    if log::log_enabled!(log::Level::Debug) {
+        for import in module.imports() {
+            debug!("Import module: {:?}", import);
+        }
+
+        for export in module.exports() {
+            debug!("Export module: {:?}", export);
+        }
+    }
+
     OpaquePtr::from(module).make_opaque()
 }

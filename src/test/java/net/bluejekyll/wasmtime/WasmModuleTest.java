@@ -3,6 +3,8 @@ package net.bluejekyll.wasmtime;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+
 import org.junit.Test;
 
 public class WasmModuleTest {

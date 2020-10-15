@@ -1,7 +1,5 @@
 package net.bluejekyll.wasmtime;
 
-import net.bluejekyll.wasmtime.types.WasmType;
-
 import javax.annotation.concurrent.NotThreadSafe;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -19,7 +17,12 @@ public class WasmFunction extends AbstractOpaquePtr {
     private static native long createFunc(long store_ptr, Method method, Object obj, Class<?> returnType,
             List<Class<?>> paramTypes) throws WasmtimeException;
 
-    private static native Object callNtv(long func_ptr, Object... args) throws WasmtimeException;
+    private static native Object callNtv(long func_ptr, long instance_pointer, Object... args) throws WasmtimeException;
+
+    public static WasmFunction newFunc(WasmStore store, Object target, String methodName, Class<?>... args) throws WasmtimeException, NoSuchMethodException {
+        Method method = target.getClass().getMethod(methodName, args);
+        return WasmFunction.newFunc(store, method, target);
+    }
 
     public static WasmFunction newFunc(WasmStore store, Method method, Object obj) throws WasmtimeException {
         List<Class<?>> parameters = new ArrayList<>(5);
@@ -48,7 +51,11 @@ public class WasmFunction extends AbstractOpaquePtr {
     }
 
     @SuppressWarnings("unchecked")
+    public <T> T call(WasmInstance instance, Object... args) throws WasmtimeException {
+        return (T) callNtv(this.getPtr(), instance.getPtr(), args);
+    }
+
     public <T> T call(Object... args) throws WasmtimeException {
-        return (T) callNtv(this.getPtr(), args);
+        return (T) callNtv(this.getPtr(), 0, args);
     }
 }
