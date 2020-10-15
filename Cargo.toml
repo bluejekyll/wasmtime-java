@@ -1,2 +1,2 @@
 [workspace]
-members = ["wasmtime-jni"]
+members = ["wasmtime-jni", "tests/math", "tests/slices", "tests/strings"]

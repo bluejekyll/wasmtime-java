@@ -1,4 +1,5 @@
 mod opaque_ptr;
+mod ty;
 mod wasm_engine;
 mod wasm_exception;
 mod wasm_function;

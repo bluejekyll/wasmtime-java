@@ -63,7 +63,7 @@ build:
 .PHONY: ${WASM_TESTS}
 ${WASM_TESTS}:
 	@echo "====> Building $(dir $@)"
-	cd $(dir $@) && cargo build --target wasm32-unknown-unknown
+	cd $(dir $@) && cargo build --target wasm32-wasi
 
 .PHONY: test
 test: build

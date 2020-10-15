@@ -4,6 +4,7 @@ use jni::objects::{JClass, JString};
 use jni::sys::jlong;
 use jni::JNIEnv;
 use wasmtime::{Func, Linker, Module};
+use wasmtime_wasi::{Wasi, WasiCtx};
 
 use crate::opaque_ptr::OpaquePtr;
 use crate::wasm_exception;
@@ -64,10 +65,14 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_defineFunc<'j>(
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_instantiateNtv<'j>(
     env: JNIEnv<'j>,
     _class: JClass<'j>,
-    linker: OpaquePtr<'j, Linker>,
+    mut linker: OpaquePtr<'j, Linker>,
     module: OpaquePtr<'j, Module>,
 ) -> jlong {
     wasm_exception::attempt(&env, |_env| {
+        let store = linker.store();
+        let wasi = Wasi::new(&store, WasiCtx::new(std::env::args())?);
+        wasi.add_to_linker(&mut linker)?;
+
         let instance = linker.instantiate(&module)?;
         Ok(OpaquePtr::from(instance).make_opaque())
     })

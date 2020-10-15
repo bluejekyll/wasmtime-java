@@ -1,7 +1,10 @@
 use std::borrow::Cow;
+use std::fmt;
 
 use anyhow::{anyhow, Context, Error};
-use jni::objects::{JString, JThrowable};
+use jni::objects::{JObject, JString, JThrowable};
+use jni::strings::JavaStr;
+use jni::sys::jarray;
 use jni::JNIEnv;
 use log::warn;
 
@@ -36,36 +39,107 @@ where
     }
 }
 
-pub fn exception_to_err<'j>(env: &JNIEnv<'j>, exception: JThrowable<'j>) -> Result<Error, Error> {
-    // TODO: if this is an invocation exception, we want to get the value...
-    let clazz = env
-        .get_object_class(exception)
-        .context("Failed to get exceptions class")?;
+pub fn exception_to_err<'j>(env: &JNIEnv<'j>, throwable: JThrowable<'j>) -> Error {
+    let reporter = ReportJThrowable { env, throwable };
 
-    let clazz = wasm_value::get_class_name(&env, clazz).context("Failed to lookup class name")?;
+    warn!("WASM caught an exception: {}", reporter);
+    anyhow!("WASM caught an exception: {}", reporter)
+}
 
-    // TODO: get entire thread
-    let message = env
-        .call_method(exception, "getMessage", "()Ljava/lang/String;", &[])
-        .context("Failed to getMessage on Throwable")?;
+struct ReportJThrowable<'l, 'j: 'l> {
+    env: &'l JNIEnv<'j>,
+    throwable: JThrowable<'j>,
+}
 
-    let message = message
+impl<'l, 'j: 'l> ReportJThrowable<'l, 'j> {
+    fn from(env: &'l JNIEnv<'j>, throwable: JThrowable<'j>) -> Self {
+        Self { env, throwable }
+    }
+}
+
+impl<'l, 'j: 'l> fmt::Display for ReportJThrowable<'l, 'j> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        // just in case...
+        if self.throwable.is_null() {
+            write!(f, "null throwable thrown")?;
+            return Ok(());
+        }
+
+        let cause = self
+            .env
+            .call_method(self.throwable, "getCause", "()Ljava/lang/Throwable;", &[])
+            .map_err(|_| fmt::Error)?;
+
+        let cause = cause.l().map_err(|_| fmt::Error)?;
+        if !cause.is_null() {
+            let reporter = ReportJThrowable::from(&self.env, JThrowable::from(cause));
+            write!(f, "cause: {}", reporter)?;
+        }
+
+        let clazz = wasm_value::get_class_name_obj(self.env, self.throwable.clone().into())
+            .map_err(|_| fmt::Error)?;
+
+        let message =
+            call_string_method(self.env, &self.throwable, "getMessage").map_err(|_| fmt::Error)?;
+
+        if let Some(message) = message {
+            writeln!(f, "{}: {}", clazz, Cow::from(&message))?;
+        } else {
+            writeln!(f, "{}", clazz)?;
+        };
+
+        let trace = self
+            .env
+            .call_method(
+                self.throwable,
+                "getStackTrace",
+                "()[Ljava/lang/StackTraceElement;",
+                &[],
+            )
+            .map_err(|_| fmt::Error)?
+            .l()
+            .map_err(|_| fmt::Error)?;
+
+        if !trace.is_null() {
+            let trace = *trace as jarray;
+            let len = self.env.get_array_length(trace).map_err(|_| fmt::Error)?;
+
+            for i in 0..len as usize {
+                let stack_element = self
+                    .env
+                    .get_object_array_element(trace, i as i32)
+                    .map_err(|_| fmt::Error)?;
+
+                let stack_str = call_string_method(self.env, &stack_element, "toString")
+                    .map_err(|_| fmt::Error)?;
+
+                if let Some(stack_str) = stack_str {
+                    writeln!(f, "\t{}", Cow::from(&stack_str))?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn call_string_method<'j: 'l, 'l>(
+    env: &'l JNIEnv<'j>,
+    obj: &JObject<'j>,
+    method: &str,
+) -> Result<Option<JavaStr<'j, 'l>>, anyhow::Error> {
+    let jstring = env
+        .call_method(*obj, method, "()Ljava/lang/String;", &[])
+        .map_err(|_| fmt::Error)?
         .l()
-        .context("Expected a String Object from Throwable.getMessage")?;
+        .map_err(|_| fmt::Error)
+        .map(JString::from)?;
 
-    let err = if !message.is_null() {
-        let message = JString::from(message);
-        let message = env
-            .get_string(message)
-            .with_context(|| format!("Failed to get_string for Exception: {}", clazz))?;
-        let message = Cow::from(&message);
+    if jstring.is_null() {
+        return Ok(None);
+    }
 
-        warn!("Method call threw an exception: {}: {}", clazz, message);
-        anyhow!("Method call threw an exception: {}: {}", clazz, message)
-    } else {
-        warn!("Method call threw an exception: {}", clazz);
-        anyhow!("Method call threw an exception: {}", clazz)
-    };
-
-    Ok(err)
+    env.get_string(jstring)
+        .with_context(|| format!("Failed to get_string for Exception: {:?}", obj))
+        .map(Some)
 }
