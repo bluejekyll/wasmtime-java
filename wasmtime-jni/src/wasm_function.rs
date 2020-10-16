@@ -271,7 +271,14 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
             let len = usize::try_from(len)?;
             let mut wasm_args = Vec::with_capacity(len);
 
-            let memory = instance.get_memory("memory");
+            let (memory, allocator) = if instance.is_null() {
+                (None, None)
+            } else {
+                (
+                    instance.get_memory("memory"),
+                    instance.get_func("__alloc_bytes"),
+                )
+            };
 
             // we need to convert all the parameters to WASM vals for the call
             debug!("got {} args for function", len);
@@ -285,7 +292,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
 
                 debug!("adding arg: {}", val.ty());
 
-                val.store_to_args(env, &mut wasm_args, memory.as_ref())?;
+                val.store_to_args(env, &mut wasm_args, memory.as_ref(), allocator.as_ref())?;
             }
 
             // call the function

@@ -1,5 +1,6 @@
 use std::ffi::c_void;
 
+//use env_logger::{self, Target};
 use flexi_logger::{opt_format, Logger};
 use jni::objects::JClass;
 use jni::sys::{jint, jlong, JavaVM, JNI_VERSION_1_8};
@@ -32,6 +33,8 @@ pub extern "system" fn JNI_OnLoad(_vm: JavaVM, _reserved: *mut c_void) -> jint {
         .format(opt_format)
         .start()
         .ok();
+
+    // env_logger::builder().target(Target::Stdout).init();
 
     info!("wasmtime JNI loaded");
     JNI_VERSION_1_8

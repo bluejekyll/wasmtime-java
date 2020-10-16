@@ -38,13 +38,12 @@ public class WasmLinkerTest {
 
             function.ifPresent(f -> {
                 try {
-                    f.call(new Object[0]);
+                    f.call(instance);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             });
         }
     }
-
 
 }
