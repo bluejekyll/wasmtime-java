@@ -1,5 +1,8 @@
 use std::slice;
 
+/// Greetings
+///
+/// # Safety
 #[no_mangle]
 pub unsafe extern "C" fn greet(name_ptr: *const u8, name_len: u32) {
     let name = slice::from_raw_parts(name_ptr, name_len as usize);

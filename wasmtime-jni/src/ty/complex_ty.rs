@@ -16,11 +16,11 @@ pub(crate) trait Abi: Copy {
 pub(crate) trait IntoAbi {
     type Abi: Abi;
 
-    fn into_abi<'a>(self) -> Self::Abi;
+    fn into_abi(self) -> Self::Abi;
 }
 
 pub(crate) trait FromAbi<A: Abi> {
-    unsafe fn from_abi<'a>(abi: A) -> Self;
+    unsafe fn from_abi(abi: A) -> Self;
 }
 
 macro_rules! direct_complex_ty {

@@ -17,10 +17,10 @@ pub extern "C" fn say_hello_to_java() {
 }
 
 #[no_mangle]
-pub extern "C" fn print_bytes(data: *const u8, len: u32) {
+pub unsafe extern "C" fn print_bytes(data: *const u8, len: u32) {
     println!("SLICES: ptr: {:x?} len: {}", data, len);
 
-    let data: &[u8] = unsafe { slice::from_raw_parts(data, len as usize) };
+    let data: &[u8] = slice::from_raw_parts(data, len as usize);
     println!("SLICES: received bytes {:x?}", data);
 }
 
@@ -29,8 +29,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_add() {
+    fn test_print_bytes() {
         let bytes = &[0u8, 1, 2] as &[u8];
-        print_bytes(bytes.as_ptr(), bytes.len() as u32);
+        unsafe { print_bytes(bytes.as_ptr(), bytes.len() as u32) };
     }
 }
