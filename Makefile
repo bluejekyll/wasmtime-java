@@ -31,13 +31,16 @@ WASMTIME_TARGET_DIR := ${PWD}/target
 NATIVE_TARGET_DIR := ${PWD}/target/native/${PLATFORM}/${ARCH}
 WASM_TESTS := $(wildcard tests/*/Cargo.toml)
 
+## This can be changed to the different wasm targets
+# WASM_TARGET := wasm32-unknown-unknown
+WASM_TARGET := wasm32-wasi
+
 .PHONY: init
 init:
 	@echo "====> Testing for all tools"
 	@mvn -version || (echo maven is required, e.g. 'brew install maven' && mvn -version)
 	@cargo --version || (echo rust is required, e.g. 'curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh' && cargo --version)
-	rustup target add wasm32-unknown-unknown
-	rustup target add wasm32-wasi
+	rustup target add ${WASM_TARGET}
 
 .PHONY: clean
 clean:
@@ -63,7 +66,7 @@ build:
 .PHONY: ${WASM_TESTS}
 ${WASM_TESTS}:
 	@echo "====> Building $(dir $@)"
-	cd $(dir $@) && cargo build --target wasm32-wasi
+	cd $(dir $@) && cargo build --target ${WASM_TARGET}
 
 .PHONY: test
 test: build

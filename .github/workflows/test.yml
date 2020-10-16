@@ -37,6 +37,9 @@ jobs:
         toolchain: stable
         override: true
     
+    - name: make init
+      run: make init
+    
     - name: make test
       run: make test
 
