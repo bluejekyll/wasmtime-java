@@ -336,8 +336,8 @@ pub(crate) fn from_java<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<WasmVa
     }
 }
 
-pub(crate) fn from_jvalue<'j, 'b>(
-    env: &JNIEnv<'j>,
+pub(crate) fn from_jvalue<'j: 'b, 'b>(
+    env: &'b JNIEnv<'j>,
     val: JValue<'j>,
 ) -> Result<Option<WasmVal<'j>>, Error> {
     let val = match val {
