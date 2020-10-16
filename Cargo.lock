@@ -1020,6 +1020,9 @@ dependencies = [
 [[package]]
 name = "slices"
 version = "0.1.0"
+dependencies = [
+ "wasmtime-jni-exports",
+]
 
 [[package]]
 name = "smallvec"
@@ -1367,6 +1370,10 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
 ]
+
+[[package]]
+name = "wasmtime-jni-exports"
+version = "0.1.0"
 
 [[package]]
 name = "wasmtime-obj"

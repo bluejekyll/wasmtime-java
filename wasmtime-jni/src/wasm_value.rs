@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 use std::fmt;
 
-use anyhow::{anyhow, Context, Error};
+use anyhow::{anyhow, ensure, Context, Error};
 use jni::objects::{JByteBuffer, JClass, JObject, JString, JValue};
 use jni::JNIEnv;
 use log::debug;
-use wasmtime::{Memory, Val, ValType};
+use wasmtime::{Func, Memory, Val, ValType};
 
-use crate::ty::{Abi, ByteSlice, ComplexTy, IntoAbi};
+use crate::ty::{Abi, ByteSlice, ComplexTy, WasmSlice};
 
 const CLASS: &str = "Ljava/lang/Class;";
 const LONG: &str = "java/lang/Long";
@@ -18,12 +18,13 @@ const VOID: &str = "java/lang/Void";
 const PRIMITIVE: &str = "TYPE";
 
 const BYTE_BUFFER: &str = "java/nio/ByteBuffer";
+const MEM_SEGMENT_SIZE: usize = 64 * 1024;
 
-pub fn get_class_name_obj<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<String, Error> {
+pub(crate) fn get_class_name_obj<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<String, Error> {
     get_class_name(env, env.get_object_class(obj)?)
 }
 
-pub fn get_class_name<'j>(env: &JNIEnv<'j>, clazz: JClass<'j>) -> Result<String, Error> {
+pub(crate) fn get_class_name<'j>(env: &JNIEnv<'j>, clazz: JClass<'j>) -> Result<String, Error> {
     let name = env.call_method(clazz, "getCanonicalName", "()Ljava/lang/String;", &[])?;
     let name = name.l()?;
     let name = JString::from(name);
@@ -32,7 +33,7 @@ pub fn get_class_name<'j>(env: &JNIEnv<'j>, clazz: JClass<'j>) -> Result<String,
 }
 
 #[derive(Clone, Debug)]
-pub enum WasmTy {
+pub(crate) enum WasmTy {
     ByteBuffer,
     ValType(ValType),
 }
@@ -94,7 +95,7 @@ impl fmt::Display for WasmTy {
     }
 }
 
-pub enum WasmVal<'j> {
+pub(crate) enum WasmVal<'j> {
     ByteBuffer(JByteBuffer<'j>),
     Val(Val),
 }
@@ -121,33 +122,53 @@ impl<'j> WasmVal<'j> {
         env: &JNIEnv<'j>,
         args: &mut Vec<Val>,
         memory: Option<&Memory>,
+        allocator: Option<&Func>,
     ) -> Result<(), anyhow::Error> {
         match self {
             WasmVal::ByteBuffer(buffer) => {
                 let direct_bytes: &[u8] = env.get_direct_buffer_address(buffer)?;
-                let memory =
-                    memory.ok_or_else(|| anyhow!("no memory supplied with the function"))?;
 
-                assert!(memory.size() >= 1);
-                assert!(memory.data_size() >= direct_bytes.len());
+                // the module might not have the memory exported
+                let memory = memory.ok_or_else(|| anyhow!("no memory supplied from module"))?;
 
-                // FIXME: we need "windows" into the memory, kinda also need to know the lengths of all the data??
-                let memory_bytes = unsafe { memory.data_unchecked_mut() };
-                let memory_bytes = &mut memory_bytes[0..direct_bytes.len()];
-                memory_bytes.copy_from_slice(direct_bytes);
+                // the module didn't define __alloc?
+                let allocator =
+                    allocator.ok_or_else(|| anyhow!("no allocator supplied from module"))?;
 
-                debug!(
-                    "copied bytes into memory: {:x?}, memory_base: {:x?} memory_bytes: {:x?}",
-                    memory_bytes,
-                    memory.data_ptr(),
-                    memory_bytes.as_ptr(),
+                let mem_size = memory.size() as usize * MEM_SEGMENT_SIZE;
+                ensure!(
+                    mem_size > direct_bytes.len(),
+                    "memory is {} need {} more",
+                    mem_size,
+                    direct_bytes.len()
                 );
 
-                let slice = ByteSlice::new(memory_bytes);
-                let abi = slice.into_abi();
+                // get target memor location and then copy into the function
+                let data_len = direct_bytes.len();
+                let offset = allocator
+                    .call(&[Val::I32(data_len as i32)])?
+                    .get(0)
+                    .and_then(|v| v.i32())
+                    .ok_or_else(|| anyhow!("i32 was not returned from the allocator"))?;
+
+                debug!("data ptr: {}", offset);
+                let mem_bytes =
+                    unsafe { &mut memory.data_unchecked_mut()[offset as usize..][..data_len] };
+                mem_bytes.copy_from_slice(direct_bytes);
+
+                debug!(
+                    "copied bytes into mem: {:x?}, mem_base: {:x?} mem_bytes: {:x?}",
+                    mem_bytes,
+                    memory.data_ptr(),
+                    mem_bytes.as_ptr(),
+                );
+
+                let abi = WasmSlice {
+                    ptr: offset,
+                    len: mem_bytes.len() as i32,
+                };
 
                 abi.store_to_args(args);
-                unimplemented!("THIS IS BROKEN");
             }
             WasmVal::Val(val @ Val::I32(_)) => val.unwrap_i32().store_to_args(args),
             WasmVal::Val(val @ Val::I64(_)) => val.unwrap_i64().store_to_args(args),
@@ -249,7 +270,10 @@ impl IntoJavaObject for f32 {
     }
 }
 
-pub fn from_java_class<'j>(env: &JNIEnv<'j>, clazz: JClass<'j>) -> Result<Option<WasmTy>, Error> {
+pub(crate) fn from_java_class<'j>(
+    env: &JNIEnv<'j>,
+    clazz: JClass<'j>,
+) -> Result<Option<WasmTy>, Error> {
     if clazz.is_null() {
         return Ok(None); // FIXME: this should be an exception, right?
     }
@@ -281,7 +305,7 @@ pub fn from_java_class<'j>(env: &JNIEnv<'j>, clazz: JClass<'j>) -> Result<Option
     Ok(Some(ty.into()))
 }
 
-pub fn from_java<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<WasmVal<'j>, Error> {
+pub(crate) fn from_java<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<WasmVal<'j>, Error> {
     assert!(!obj.is_null(), "obj should not be null for conversion");
     match obj {
         _ if env.is_instance_of(obj, LONG)? => {
@@ -312,7 +336,7 @@ pub fn from_java<'j>(env: &JNIEnv<'j>, obj: JObject<'j>) -> Result<WasmVal<'j>, 
     }
 }
 
-pub fn from_jvalue<'j, 'b>(
+pub(crate) fn from_jvalue<'j, 'b>(
     env: &JNIEnv<'j>,
     val: JValue<'j>,
 ) -> Result<Option<WasmVal<'j>>, Error> {
@@ -334,7 +358,7 @@ pub fn from_jvalue<'j, 'b>(
     Ok(Some(val.into()))
 }
 
-pub fn to_java<'j, 'w: 'j>(env: &JNIEnv<'j>, val: &'w Val) -> Result<JObject<'j>, Error> {
+pub(crate) fn to_java<'j, 'w: 'j>(env: &JNIEnv<'j>, val: &'w Val) -> Result<JObject<'j>, Error> {
     let obj = match val {
         Val::I64(val) => {
             let jvalue = JValue::Long(*val);

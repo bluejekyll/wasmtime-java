@@ -1,3 +1,8 @@
+use std::slice;
+
+// needed for exports to wasmtime-jni
+pub use wasmtime_jni_exports;
+
 #[link(wasm_import_module = "test")]
 extern "C" {
     fn hello_to_java(data: *const u8, len: u32);
@@ -15,7 +20,7 @@ pub extern "C" fn say_hello_to_java() {
 pub extern "C" fn print_bytes(data: *const u8, len: u32) {
     println!("SLICES: ptr: {:x?} len: {}", data, len);
 
-    //let data: &[u8] = unsafe { slice::from_raw_parts(data, len as usize) };
+    let data: &[u8] = unsafe { slice::from_raw_parts(data, len as usize) };
     println!("SLICES: received bytes {:x?}", data);
 }
 

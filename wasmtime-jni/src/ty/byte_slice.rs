@@ -1,10 +1,9 @@
 use std::ops::Deref;
-use std::slice;
 
 use anyhow::{anyhow, ensure};
 use wasmtime::{Val, ValType, WeakStore};
 
-use crate::ty::{Abi, ComplexTy, FromAbi, IntoAbi};
+use crate::ty::{Abi, ComplexTy};
 
 // pub fn greet(name: &str) -> String {
 //     format!("Hello, {}!", name)
@@ -61,9 +60,9 @@ use crate::ty::{Abi, ComplexTy, FromAbi, IntoAbi};
 pub struct ByteSlice([u8]);
 
 impl ByteSlice {
-    pub fn new<'a>(bytes: &'a [u8]) -> &'a Self {
-        unsafe { &*(bytes as *const [u8] as *const Self) }
-    }
+    // pub fn new<'a>(bytes: &'a [u8]) -> &'a Self {
+    //     unsafe { &*(bytes as *const [u8] as *const Self) }
+    // }
 }
 
 impl Deref for ByteSlice {
@@ -77,8 +76,8 @@ impl Deref for ByteSlice {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct WasmSlice {
-    pub ptr: u32,
-    pub len: u32,
+    pub ptr: i32,
+    pub len: i32,
 }
 
 impl ComplexTy for ByteSlice {
@@ -107,13 +106,13 @@ impl Abi for WasmSlice {
             .next()
             .ok_or_else(|| anyhow!("missing ptr arg"))?
             .i32()
-            .ok_or_else(|| anyhow!("ptr not i32"))? as u32;
+            .ok_or_else(|| anyhow!("ptr not i32"))?;
 
         let len = args
             .next()
             .ok_or_else(|| anyhow!("missing ptr arg"))?
             .i32()
-            .ok_or_else(|| anyhow!("ptr not i32"))? as u32;
+            .ok_or_else(|| anyhow!("ptr not i32"))?;
 
         Ok(WasmSlice { ptr, len })
     }
@@ -139,22 +138,22 @@ impl Abi for WasmSlice {
     }
 }
 
-impl<'b> IntoAbi for &'b ByteSlice {
-    type Abi = WasmSlice;
+// impl<'b> IntoAbi for &'b ByteSlice {
+//     type Abi = WasmSlice;
 
-    fn into_abi<'a>(self) -> Self::Abi {
-        let ptr = self.0.as_ptr() as u32;
-        let len = self.len() as u32;
+//     fn into_abi<'a>(self) -> Self::Abi {
+//         let ptr = self.0.as_ptr() as i32;
+//         let len = self.len() as i32;
 
-        WasmSlice { ptr, len }
-    }
-}
+//         WasmSlice { ptr, len }
+//     }
+// }
 
-impl<'b> FromAbi<WasmSlice> for &'b ByteSlice {
-    unsafe fn from_abi<'a>(abi: WasmSlice) -> Self {
-        let WasmSlice { ptr, len } = abi;
+// impl<'b> FromAbi<WasmSlice> for &'b ByteSlice {
+//     unsafe fn from_abi<'a>(abi: WasmSlice) -> Self {
+//         let WasmSlice { ptr, len } = abi;
 
-        let ptr = ptr as *const u8;
-        ByteSlice::new(slice::from_raw_parts(ptr as *const _, len as usize))
-    }
-}
+//         let ptr = ptr as *const u8;
+//         ByteSlice::new(slice::from_raw_parts(ptr as *const _, len as usize))
+//     }
+// }

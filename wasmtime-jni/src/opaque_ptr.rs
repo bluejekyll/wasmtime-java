@@ -3,8 +3,9 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use jni::sys::jlong;
-use log::debug;
+use log::{debug, trace};
 
+// TODO: add methods to extract from a passed in Object to have better ownership semantics in Java.
 /// This borrows the pointer stored at jlong, not taking ownership
 ///
 /// This should only be used with [`make_opaque`]
@@ -16,7 +17,7 @@ pub struct OpaquePtr<'a, T> {
 
 impl<'a, T> OpaquePtr<'a, T> {
     pub fn as_ref(&self) -> &'a T {
-        debug!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
+        trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
         assert_ne!(self.ptr, 0, "cannot deref null");
         let obj = self.ptr as *const T;
 
@@ -24,7 +25,7 @@ impl<'a, T> OpaquePtr<'a, T> {
     }
 
     pub fn as_mut(&mut self) -> &mut T {
-        debug!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
+        trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
         assert_ne!(self.ptr, 0, "cannot deref null");
         let obj = self.ptr as *mut T;
 
@@ -35,7 +36,7 @@ impl<'a, T> OpaquePtr<'a, T> {
     ///
     /// It is undefined behavior to reference the ptr in any other context after this.
     pub fn take(self) -> Box<T> {
-        debug!("opaque_ptr({}) to Box<{}>", self.ptr, any::type_name::<T>());
+        trace!("opaque_ptr({}) to Box<{}>", self.ptr, any::type_name::<T>());
         assert_ne!(self.ptr, 0, "cannot deref null");
         let obj = self.ptr as *mut T;
 
@@ -45,6 +46,11 @@ impl<'a, T> OpaquePtr<'a, T> {
     /// Take ownership of a Rust type and return an opaque pointer as a jlong for future usage
     pub fn make_opaque(self) -> jlong {
         self.ptr
+    }
+
+    /// Returns true if the backing ptr is == 0
+    pub fn is_null(&self) -> bool {
+        self.ptr == 0
     }
 }
 

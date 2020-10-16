@@ -19,7 +19,8 @@ public class WasmFunction extends AbstractOpaquePtr {
 
     private static native Object callNtv(long func_ptr, long instance_pointer, Object... args) throws WasmtimeException;
 
-    public static WasmFunction newFunc(WasmStore store, Object target, String methodName, Class<?>... args) throws WasmtimeException, NoSuchMethodException {
+    public static WasmFunction newFunc(WasmStore store, Object target, String methodName, Class<?>... args)
+            throws WasmtimeException, NoSuchMethodException {
         Method method = target.getClass().getMethod(methodName, args);
         return WasmFunction.newFunc(store, method, target);
     }
@@ -50,12 +51,28 @@ public class WasmFunction extends AbstractOpaquePtr {
         return new WasmFunction(ptr);
     }
 
+    /**
+     * 
+     * @param instance the linked and compiled instance to call this function agains
+     * @param args     list of arguments for the function, must match those of the
+     *                 "wrapped" function
+     * @param <T>      return type matching the wrapped functions return type
+     * @return If there is a return value for the function, otherwise Void
+     * @throws WasmtimeException If any exception is thrown byt the underlying
+     *                           function
+     */
     @SuppressWarnings("unchecked")
     public <T> T call(WasmInstance instance, Object... args) throws WasmtimeException {
         return (T) callNtv(this.getPtr(), instance.getPtr(), args);
     }
 
-    public <T> T call(Object... args) throws WasmtimeException {
+    /**
+     * WARNING: this is really only useful in tests, Instance will be null in the
+     * native call, which is bad for any non-native types, like Strings arrays or
+     * ByteBuffers.
+     */
+    @SuppressWarnings("unchecked")
+    <T> T call_for_tests(Object... args) throws WasmtimeException {
         return (T) callNtv(this.getPtr(), 0, args);
     }
 }

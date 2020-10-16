@@ -58,7 +58,7 @@ public class WasmtimeExceptionTest {
 
             try (func) {
                 System.out.println("running function");
-                Object val = func.call();
+                Object val = func.call_for_tests();
                 assertNull(val);
             } catch (Exception e) {
                 // TODO: we eventually want to look for the RuntimeException
@@ -70,7 +70,7 @@ public class WasmtimeExceptionTest {
             WasmFunction func2 = WasmFunction.newFunc(store, method2, this);
 
             try (func2) {
-                func2.call();
+                func2.call_for_tests();
                 assertTrue(true);
             }
         }
