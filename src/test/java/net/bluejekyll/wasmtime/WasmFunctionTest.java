@@ -46,7 +46,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                int val = func.call_for_tests(1, 2);
+                int val = func.call_for_tests(int.class, 1, 2);
                 assertEquals(3, val);
             }
         }
@@ -66,7 +66,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                int val = func.call_for_tests(1, 2);
+                int val = func.call_for_tests(int.class, 1, 2);
                 assertEquals(3, val);
             }
         }
@@ -86,7 +86,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                long val = func.call_for_tests((long) 1, (long) 2);
+                long val = func.call_for_tests(long.class, (long) 1, (long) 2);
                 assertEquals(3, val);
             }
         }
@@ -106,7 +106,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                Long val = func.call_for_tests((long) 1, (long) 2);
+                Long val = func.call_for_tests(Long.class, (long) 1, (long) 2);
                 assertEquals(3, val.longValue());
             }
         }
@@ -126,7 +126,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                float val = func.call_for_tests((float) 1.1, (float) 1.2);
+                float val = func.call_for_tests(float.class, (float) 1.1, (float) 1.2);
                 assertTrue(2.29 < val);
                 assertTrue(2.31 > val);
             }
@@ -147,7 +147,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                Float val = func.call_for_tests((float) 1.1, (float) 1.2);
+                Float val = func.call_for_tests(Float.class, (float) 1.1, (float) 1.2);
 
                 assertTrue(2.29 < val);
                 assertTrue(2.31 > val);
@@ -169,7 +169,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                double val = func.call_for_tests((double) 1.1, (double) 1.2);
+                double val = func.call_for_tests(double.class, (double) 1.1, (double) 1.2);
                 assertTrue(2.29 < val);
                 assertTrue(2.31 > val);
             }
@@ -188,7 +188,7 @@ public class WasmFunctionTest {
 
             try (func) {
                 System.out.println("running function");
-                Double val = func.call_for_tests((double) 1.1, (double) 1.2);
+                Double val = func.call_for_tests(Double.class, (double) 1.1, (double) 1.2);
 
                 assertTrue(2.29 < val);
                 assertTrue(2.31 > val);

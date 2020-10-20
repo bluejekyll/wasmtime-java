@@ -17,7 +17,8 @@ public class WasmFunction extends AbstractOpaquePtr {
     private static native long createFunc(long store_ptr, Method method, Object obj, Class<?> returnType,
             List<Class<?>> paramTypes) throws WasmtimeException;
 
-    private static native Object callNtv(long func_ptr, long instance_pointer, Object... args) throws WasmtimeException;
+    private static native Object callNtv(long func_ptr, long instance_pointer, Class<?> returnType, Object... args)
+            throws WasmtimeException;
 
     public static WasmFunction newFunc(WasmStore store, Object target, String methodName, Class<?>... args)
             throws WasmtimeException, NoSuchMethodException {
@@ -30,30 +31,22 @@ public class WasmFunction extends AbstractOpaquePtr {
         for (Parameter param : method.getParameters()) {
             Class<?> ty = param.getType();
 
-            // this validates that it's a type we support... maybe just remove this and do
-            // it in Rust.
-            // WasmType wty = WasmType.fromClass(ty);
-
-            // // void params, there are no params
-            // if (wty == null)
-            // break;
             System.out.println("ty class: " + ty.getCanonicalName());
             parameters.add(ty);
         }
 
         // validate that the type is something we support
-        Class<?> returnValue = method.getReturnType();
-        System.out.println("return class: " + returnValue.getCanonicalName());
+        Class<?> returnType = method.getReturnType();
+        System.out.println("return class: " + returnType.getCanonicalName());
 
-        // WasmType.fromClass(returnValue);
-
-        long ptr = createFunc(store.getPtr(), method, obj, returnValue, parameters);
+        long ptr = createFunc(store.getPtr(), method, obj, returnType, parameters);
         return new WasmFunction(ptr);
     }
 
     /**
      * 
      * @param instance the linked and compiled instance to call this function agains
+     * @param returnType the class of the return type, Void for no return
      * @param args     list of arguments for the function, must match those of the
      *                 "wrapped" function
      * @param <T>      return type matching the wrapped functions return type
@@ -62,8 +55,22 @@ public class WasmFunction extends AbstractOpaquePtr {
      *                           function
      */
     @SuppressWarnings("unchecked")
-    public <T> T call(WasmInstance instance, Object... args) throws WasmtimeException {
-        return (T) callNtv(this.getPtr(), instance.getPtr(), args);
+    public <T> T call(WasmInstance instance, Class<T> returnType, Object... args) throws WasmtimeException {
+        return (T) callNtv(this.getPtr(), instance.getPtr(), returnType, args);
+    }
+
+    /**
+     *
+     * @param instance the linked and compiled instance to call this function agains
+     * @param args     list of arguments for the function, must match those of the
+     *                 "wrapped" function
+     * @return If there is a return value for the function, otherwise Void
+     * @throws WasmtimeException If any exception is thrown byt the underlying
+     *                           function
+     */
+    @SuppressWarnings("unchecked")
+    public void call(WasmInstance instance, Object... args) throws WasmtimeException {
+        callNtv(this.getPtr(), instance.getPtr(), Void.class, args);
     }
 
     /**
@@ -72,7 +79,16 @@ public class WasmFunction extends AbstractOpaquePtr {
      * ByteBuffers.
      */
     @SuppressWarnings("unchecked")
-    <T> T call_for_tests(Object... args) throws WasmtimeException {
-        return (T) callNtv(this.getPtr(), 0, args);
+    <T> T call_for_tests(Class<T> returnType, Object... args) throws WasmtimeException {
+        return (T) callNtv(this.getPtr(), 0, returnType, args);
+    }
+
+    /**
+     * WARNING: this is really only useful in tests, Instance will be null in the
+     * native call, which is bad for any non-native types, like Strings arrays or
+     * ByteBuffers.
+     */
+    void call_for_tests(Object... args) throws WasmtimeException {
+        callNtv(this.getPtr(), 0, Void.class, args);
     }
 }

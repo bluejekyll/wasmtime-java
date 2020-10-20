@@ -1,3 +1,5 @@
+![test](https://github.com/bluejekyll/wasmtime-java/workflows/test/badge.svg?branch=main)
+
 # Java bindings to the Wasmtime runtime engine
 
 WASM, web-assembly, is a low-level stack execution engine. This library gives a JNI based binding to the Wasmtime WASM runtime.

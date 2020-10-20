@@ -16,17 +16,29 @@ pub struct OpaquePtr<'a, T> {
 }
 
 impl<'a, T> OpaquePtr<'a, T> {
+    #[track_caller]
     pub fn as_ref(&self) -> &'a T {
         trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
-        assert_ne!(self.ptr, 0, "cannot deref null");
+        assert_ne!(
+            self.ptr,
+            0,
+            "cannot deref null for &{}",
+            any::type_name::<T>()
+        );
         let obj = self.ptr as *const T;
 
         unsafe { &*obj }
     }
 
+    #[track_caller]
     pub fn as_mut(&mut self) -> &mut T {
         trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
-        assert_ne!(self.ptr, 0, "cannot deref null");
+        assert_ne!(
+            self.ptr,
+            0,
+            "cannot deref null for &{}",
+            any::type_name::<T>()
+        );
         let obj = self.ptr as *mut T;
 
         unsafe { &mut *obj }
@@ -35,9 +47,15 @@ impl<'a, T> OpaquePtr<'a, T> {
     /// This takes ownership of the pointer stored at jlong.
     ///
     /// It is undefined behavior to reference the ptr in any other context after this.
+    #[track_caller]
     pub fn take(self) -> Box<T> {
         trace!("opaque_ptr({}) to Box<{}>", self.ptr, any::type_name::<T>());
-        assert_ne!(self.ptr, 0, "cannot deref null");
+        assert_ne!(
+            self.ptr,
+            0,
+            "cannot deref null for &{}",
+            any::type_name::<T>()
+        );
         let obj = self.ptr as *mut T;
 
         unsafe { Box::from_raw(obj) }
@@ -49,6 +67,7 @@ impl<'a, T> OpaquePtr<'a, T> {
     }
 
     /// Returns true if the backing ptr is == 0
+    #[allow(unused)]
     pub fn is_null(&self) -> bool {
         self.ptr == 0
     }
@@ -57,6 +76,7 @@ impl<'a, T> OpaquePtr<'a, T> {
 impl<'a, T> Deref for OpaquePtr<'a, T> {
     type Target = T;
 
+    #[track_caller]
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }

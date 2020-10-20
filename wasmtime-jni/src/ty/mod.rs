@@ -1,5 +1,7 @@
 pub(crate) mod byte_slice;
 pub(crate) mod complex_ty;
+mod wasm_alloc;
 
-pub(crate) use byte_slice::{ByteSlice, WasmSlice};
-pub(crate) use complex_ty::{Abi, ComplexTy};
+pub(crate) use byte_slice::WasmSlice;
+pub(crate) use complex_ty::{Abi, ComplexTy, ReturnAbi};
+pub(crate) use wasm_alloc::WasmAlloc;

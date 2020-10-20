@@ -42,9 +42,9 @@ public class SliceTests {
     public void testHelloToJavaWasmModule() throws Exception {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine();
-             WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
-             WasmStore store = engine.newStore();
-             WasmLinker linker = store.newLinker()) {
+                WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
+                WasmStore store = engine.newStore();
+                WasmLinker linker = store.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
@@ -71,7 +71,7 @@ public class SliceTests {
             assertNotNull(module);
 
             link(store, linker);
-            
+
             WasmInstance instance = linker.instantiate(module);
             Optional<WasmFunction> func = instance.getFunction("print_bytes");
 
@@ -83,6 +83,38 @@ public class SliceTests {
             buffer.put(bytes);
 
             function.call(instance, buffer);
+        }
+    }
+
+    @Test
+    public void testReverseBytes() throws Exception {
+        Wasmtime wasm = new Wasmtime();
+        try (WasmEngine engine = wasm.newWasmEngine();
+                WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
+                WasmStore store = engine.newStore();
+                WasmLinker linker = store.newLinker()) {
+            System.out.println("slices compiled");
+            assertNotNull(module);
+
+            link(store, linker);
+
+            WasmInstance instance = linker.instantiate(module);
+            Optional<WasmFunction> func = instance.getFunction("reverse_bytes");
+
+            assertTrue("print_bytes isn't present in the module", func.isPresent());
+            WasmFunction function = func.get();
+
+            byte[] bytes = new byte[] { 0, 1, 2, 3 };
+            ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
+            buffer.put(bytes);
+
+            ByteBuffer ret = function.call(instance, ByteBuffer.class, buffer);
+            assertNotNull(ret);
+            assertEquals(bytes.length, ret.remaining());
+
+            byte[] reversed = new byte[bytes.length];
+            ret.get(reversed);
+            assertArrayEquals(reversed, new byte[] { 3, 2, 1, 0 });
         }
     }
 }

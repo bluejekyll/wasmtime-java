@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Error};
 use jni::objects::{JClass, JMethodID, JObject, JValue};
@@ -8,11 +7,12 @@ use jni::sys::{jlong, jobject, jobjectArray};
 use jni::JNIEnv;
 use log::debug;
 use log::warn;
-use wasmtime::{Caller, Extern, Func, FuncType, Instance, Store, Trap, Val, ValType};
+use wasmtime::{Caller, Func, FuncType, Instance, Store, Trap, Val, ValType};
 
+use crate::opaque_ptr::OpaquePtr;
+use crate::ty::{WasmAlloc, WasmSlice};
 use crate::wasm_exception;
-use crate::wasm_value::{self, WasmVal};
-use crate::{opaque_ptr::OpaquePtr, wasm_value::WasmTy};
+use crate::wasm_value::{self, WasmTy, WasmVal};
 
 /// /*
 /// * Class:     net_bluejekyll_wasmtime_WasmFunction
@@ -38,27 +38,6 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
         let obj = env.new_global_ref(obj)?;
         let jvm = env.get_java_vm()?;
 
-        //
-        // determine the return type
-        let java_ret = wasm_value::from_java_class(&env, return_ty)
-            .context("error converting type to wasm")?;
-        debug!(
-            "Mapping return value from {:?} to {:?}",
-            wasm_value::get_class_name(&env, return_ty)?,
-            java_ret
-        );
-
-        let ret: Box<[ValType]> = java_ret.clone().map_or_else(
-            || Box::new([]) as Box<_>,
-            |v| {
-                if let WasmTy::ValType(v) = v {
-                    Box::new([v]) as Box<_>
-                } else {
-                    unimplemented!("need to implement return type conversion for slices")
-                }
-            },
-        );
-
         // collect all the arguments from
         let param_list = env.get_list(param_tys)?;
         let mut wasm_args: Vec<ValType> = Vec::with_capacity(param_list.size()? as usize);
@@ -79,14 +58,28 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
             java_args.push(val);
         }
 
-        // need shared refs for the func to the args
-        let java_args = Arc::new(java_args);
-        let java_ret = Arc::new(java_ret);
+        // determine the return type
+        let java_ret = wasm_value::from_java_class(&env, return_ty)
+            .context("error converting type to wasm")?;
+        debug!(
+            "Mapping return value from {:?} to {:?}",
+            wasm_value::get_class_name(&env, return_ty)?,
+            java_ret
+        );
+
+        let wasm_ret = if let Some(java_ret) = &java_ret {
+            java_ret.return_or_push_arg_tys(&mut wasm_args)
+        } else {
+            None
+        };
+
+        let wasm_ret: Box<[ValType]> =
+            wasm_ret.map_or_else(|| Box::new([]) as Box<_>, |v| Box::new([v]) as Box<_>);
 
         let func = move |caller: Caller, inputs: &[Val], outputs: &mut [Val]| -> Result<(), Trap> {
             let java_args = &java_args;
             let java_ret = &java_ret;
-            let memory = caller.get_export("memory").and_then(Extern::into_memory);
+            let wasm_alloc = WasmAlloc::from_caller(&caller);
 
             debug!(
                 "Calling Java method args {} and return {} with WASM {} inputs and {} outputs",
@@ -96,6 +89,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                 outputs.len()
             );
 
+            // validate the parameters
             let mut input_ty_iter = inputs.iter().map(|v| v.ty());
             for java_arg in java_args.iter() {
                 java_arg
@@ -104,6 +98,13 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                         format!("Expected arguments to line up with java arg: {}", java_arg)
                     })?;
             }
+
+            // TODO: this validation fails, b/c the ty from WASM is ExternRef... not sure why?
+            // validate the return
+            // if let Some(java_ret) = java_ret {
+            //     java_ret
+            //         .matches_return_or_arg_tys(outputs.get(0).map(Val::ty), &mut input_ty_iter)?;
+            // }
 
             let env = jvm
                 .get_env()
@@ -141,7 +142,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
             for (i, java_arg) in java_args.iter().enumerate() {
                 let jvalue = unsafe {
                     java_arg
-                        .load_from_args(&env, &mut input_iter, memory.as_ref())
+                        .load_from_args(&env, &mut input_iter, wasm_alloc.as_ref())
                         .with_context(|| format!("Failed to get Java arg from: {}", java_arg))?
                 };
 
@@ -156,6 +157,11 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     .map_err(Error::from)
                     .context("Failed to add value to array?")?;
             }
+
+            // get the optional pointer to the arg to store a byte return by ref
+            let ret_by_ref_ptr = java_ret
+                .as_ref()
+                .and_then(|v| v.get_return_by_ref_arg(input_iter));
 
             debug!("Calling Java method");
 
@@ -200,10 +206,27 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     debug!("associating {:?} with result", val);
                     *result = val;
                 }
+                (Some(WasmVal::ByteBuffer(val)), None) => {
+                    debug!("allocating space and associating bytes for return by ref");
+                    let ptr = ret_by_ref_ptr
+                        .ok_or_else(|| anyhow!("expected return by ref argument pointer"))?;
+                    let wasm_alloc = wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc is required"))?;
+
+                    let bytes = env
+                        .get_direct_buffer_address(val)
+                        .context("could not get bytes from address")?;
+
+                    // get mutable reference to the return by ref pointer and then store
+                    unsafe {
+                        let ret_by_ref_loc = wasm_alloc.obj_as_mut::<WasmSlice>(ptr);
+                        *ret_by_ref_loc = wasm_alloc.alloc_bytes(bytes)?;
+                    }
+                }
                 (Some(WasmVal::ByteBuffer(_val)), Some(_result)) => {
-                    unimplemented!("need to implement return value translation for WasmTy");
-                    //debug!("associating {:?} with result", val);
-                    //*result = val;
+                    return Err(anyhow!(
+                        "Unexpected WASM return value, should have been return by reference"
+                    )
+                    .into());
                 }
                 (None, Some(result)) => {
                     debug!("associating null with result");
@@ -222,7 +245,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
 
         let func = Func::new(
             &store,
-            FuncType::new(wasm_args.into_boxed_slice(), ret),
+            FuncType::new(wasm_args.into_boxed_slice(), wasm_ret),
             func,
         );
 
@@ -247,18 +270,19 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_freeFunc<'j>(
 }
 
 /// /*
-/// * Class:     net_bluejekyll_wasmtime_WasmFunction
-/// * Method:    callNtv
-/// * Signature: (JJ[Ljava/lang/Object;)Ljava/lang/Object;
-/// */
-/// JNIEXPORT jobject JNICALL Java_net_bluejekyll_wasmtime_WasmFunction_callNtv
-/// (JNIEnv *, jclass, jlong, jlong, jobjectArray);
+///  * Class:     net_bluejekyll_wasmtime_WasmFunction
+///  * Method:    callNtv
+///  * Signature: (JJLjava/lang/Class;[Ljava/lang/Object;)Ljava/lang/Object;
+///  */
+///  JNIEXPORT jobject JNICALL Java_net_bluejekyll_wasmtime_WasmFunction_callNtv
+///  (JNIEnv *, jclass, jlong, jlong, jclass, jobjectArray);
 #[no_mangle]
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
     env: JNIEnv<'j>,
     _class: JClass<'j>,
     func: OpaquePtr<'j, Func>,
     instance: OpaquePtr<'j, Instance>,
+    return_type: JClass<'j>,
     args: jobjectArray,
 ) -> jobject {
     // Read this to help understand String and array types https://github.com/rustwasm/wasm-bindgen/blob/d54340e5a220953651555f45f90061499dc0ac92/guide/src/contributing/design/exporting-rust.md
@@ -271,13 +295,10 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
             let len = usize::try_from(len)?;
             let mut wasm_args = Vec::with_capacity(len);
 
-            let (memory, allocator) = if instance.is_null() {
-                (None, None)
+            let wasm_alloc = if !instance.is_null() {
+                WasmAlloc::from_instance(&instance)
             } else {
-                (
-                    instance.get_memory("memory"),
-                    instance.get_func("__alloc_bytes"),
-                )
+                None
             };
 
             // we need to convert all the parameters to WASM vals for the call
@@ -292,8 +313,18 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
 
                 debug!("adding arg: {}", val.ty());
 
-                val.store_to_args(env, &mut wasm_args, memory.as_ref(), allocator.as_ref())?;
+                val.store_to_args(env, &mut wasm_args, wasm_alloc.as_ref())?;
             }
+
+            // now we may need to add a return_by_ref parameter
+            let wasm_return_ty = wasm_value::from_java_class(&env, return_type)?;
+            let maybe_ret_by_ref = if let Some(wasm_return_ty) = &wasm_return_ty {
+                wasm_return_ty
+                    .clone()
+                    .return_or_store_to_arg(&mut wasm_args, wasm_alloc.as_ref())?
+            } else {
+                None
+            };
 
             // call the function
             let val = func
@@ -307,11 +338,18 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
                 ));
             }
 
-            let ret = match val.first() {
-                Some(val) => wasm_value::to_java(&env, val).with_context(|| {
-                    format!("failed to convert WASM return value to Java: {}", val.ty())
-                })?,
-                None => JObject::null(),
+            let ret = if let Some(wasm_return_ty) = wasm_return_ty {
+                unsafe {
+                    wasm_value::return_or_load_or_from_arg(
+                        env,
+                        wasm_return_ty,
+                        val.get(0),
+                        maybe_ret_by_ref,
+                        wasm_alloc.as_ref(),
+                    )?
+                }
+            } else {
+                JObject::null()
             };
 
             // Giving the return result to java

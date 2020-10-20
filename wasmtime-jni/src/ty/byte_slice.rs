@@ -1,9 +1,11 @@
 use std::ops::Deref;
 
-use anyhow::{anyhow, ensure};
+use anyhow::{anyhow, ensure, Error};
+use log::debug;
 use wasmtime::{Val, ValType, WeakStore};
+pub use wasmtime_jni_exports::WasmSlice;
 
-use crate::ty::{Abi, ComplexTy};
+use crate::ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc};
 
 // pub fn greet(name: &str) -> String {
 //     format!("Hello, {}!", name)
@@ -73,13 +75,6 @@ impl Deref for ByteSlice {
     }
 }
 
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct WasmSlice {
-    pub ptr: i32,
-    pub len: i32,
-}
-
 impl ComplexTy for ByteSlice {
     type Abi = WasmSlice;
 
@@ -132,6 +127,69 @@ impl Abi for WasmSlice {
             next == Some(ValType::I32),
             "Expected length for memory: {:?}",
             next
+        );
+
+        Ok(())
+    }
+}
+
+impl ReturnAbi for WasmSlice {
+    /// Place the necessary type signature in the type list
+    #[allow(unused)]
+    fn return_or_push_arg_tys(args: &mut Vec<ValType>) -> Option<ValType> {
+        // For slice returns, we need a pointer to WasmSlice in the final parameter position
+        args.push(ValType::I32);
+
+        None
+    }
+
+    /// Place the values in the argument list, if there was an allocation, the pointer is returned
+    #[allow(unused)]
+    fn return_or_store_to_arg(
+        args: &mut Vec<Val>,
+        wasm_alloc: Option<&WasmAlloc>,
+    ) -> Result<Option<i32>, Error> {
+        // create a place in memory for the slice to be returned
+        let ptr = wasm_alloc
+            .ok_or_else(|| anyhow!("WasmAlloc not supplied"))?
+            .alloc::<Self>()?;
+
+        args.push(Val::from(ptr));
+        Ok(Some(ptr))
+    }
+
+    fn get_return_by_ref_arg(mut args: impl Iterator<Item = Val>) -> Option<i32> {
+        args.next().as_ref().and_then(Val::i32)
+    }
+
+    /// Load from the returned value, or from the passed in pointer to the return by ref parameter
+    fn return_or_load_or_from_args(
+        _ret: Option<&Val>,
+        mut ret_by_ref_ptr: Option<i32>,
+        wasm_alloc: Option<&WasmAlloc>,
+    ) -> Result<Self, anyhow::Error> {
+        let ptr = ret_by_ref_ptr
+            .take()
+            .ok_or_else(|| anyhow!("No pointer was supplied"))?;
+        let wasm_alloc = wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc was not supplied"))?;
+
+        let wasm_slice = unsafe { wasm_alloc.obj_as_mut(ptr) };
+        debug!("read {:?}", wasm_slice);
+        Ok(*wasm_slice)
+    }
+
+    /// matches the arg tys
+    fn matches_return_or_arg_tys(
+        _ret: Option<ValType>,
+        mut tys: impl Iterator<Item = ValType>,
+    ) -> Result<(), Error> {
+        let ty = tys.next();
+
+        // is a pointer type
+        ensure!(
+            ty == Some(ValType::I32),
+            "Expected ptr for return by ref: {:?}",
+            ty
         );
 
         Ok(())
