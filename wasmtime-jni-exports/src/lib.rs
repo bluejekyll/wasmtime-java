@@ -3,6 +3,7 @@ use std::slice;
 
 pub const MEMORY_EXPORT: &str = "memory";
 pub const ALLOC_EXPORT: &str = "__alloc_bytes";
+pub const DEALLOC_EXPORT: &str = "__dealloc_bytes";
 
 /// Allocates size in bytes of `memory`, offset to area returned.
 ///
@@ -48,8 +49,10 @@ pub struct WasmSlice {
 }
 
 impl WasmSlice {
+    /// # Safety
+    /// This relies on the ptr and len being accurate for the current memory environment. Inside a WASM runtime for example.
     #[inline]
-    pub unsafe fn as_bytes<'a>(&'a self) -> &'a [u8] {
+    pub unsafe fn as_bytes(&self) -> &[u8] {
         let ptr = self.ptr as *const u8;
         slice::from_raw_parts(ptr, self.len as usize)
     }

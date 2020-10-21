@@ -147,7 +147,7 @@ impl ReturnAbi for WasmSlice {
     #[allow(unused)]
     fn return_or_store_to_arg(
         args: &mut Vec<Val>,
-        wasm_alloc: Option<&WasmAlloc>,
+        wasm_alloc: Option<&mut WasmAlloc>,
     ) -> Result<Option<i32>, Error> {
         // create a place in memory for the slice to be returned
         let ptr = wasm_alloc
@@ -166,7 +166,7 @@ impl ReturnAbi for WasmSlice {
     fn return_or_load_or_from_args(
         _ret: Option<&Val>,
         mut ret_by_ref_ptr: Option<i32>,
-        wasm_alloc: Option<&WasmAlloc>,
+        wasm_alloc: Option<&mut WasmAlloc>,
     ) -> Result<Self, anyhow::Error> {
         let ptr = ret_by_ref_ptr
             .take()

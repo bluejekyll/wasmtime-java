@@ -1,17 +1,22 @@
 use std::mem;
 
-use anyhow::{anyhow, ensure, Error};
+use anyhow::{anyhow, ensure, Context, Error};
 use log::debug;
 use wasmtime::{Caller, Extern, Func, Instance, Memory, Val};
-use wasmtime_jni_exports::{ALLOC_EXPORT, MEMORY_EXPORT};
+use wasmtime_jni_exports::{ALLOC_EXPORT, DEALLOC_EXPORT, MEMORY_EXPORT};
 
 use crate::ty::WasmSlice;
 
 const MEM_SEGMENT_SIZE: usize = 64 * 1024;
 
+/// Allocator that can allocate and deallocate to and from a WASM module.
+///
+/// This assumes the existence of `memory` Memory as well as `__alloc_bytes` and `__dealloc_bytes` Funcs
+///   are exported from the module.
 pub(crate) struct WasmAlloc {
     memory: Memory,
-    allocator: Func,
+    alloc: Func,
+    dealloc: Func,
 }
 
 impl WasmAlloc {
@@ -20,39 +25,45 @@ impl WasmAlloc {
             .get_export(MEMORY_EXPORT)
             .and_then(Extern::into_memory);
         let alloc = caller.get_export(ALLOC_EXPORT).and_then(Extern::into_func);
+        let dealloc = caller
+            .get_export(DEALLOC_EXPORT)
+            .and_then(Extern::into_func);
 
-        Self::from(memory, alloc)
+        Self::from(memory, alloc, dealloc)
     }
 
     pub fn from_instance(instance: &Instance) -> Option<Self> {
         Self::from(
             instance.get_memory(MEMORY_EXPORT),
             instance.get_func(ALLOC_EXPORT),
+            instance.get_func(DEALLOC_EXPORT),
         )
     }
 
-    fn from(memory: Option<Memory>, allocator: Option<Func>) -> Option<Self> {
+    fn from(memory: Option<Memory>, alloc: Option<Func>, dealloc: Option<Func>) -> Option<Self> {
         Some(Self {
             memory: memory?,
-            allocator: allocator?,
+            alloc: alloc?,
+            dealloc: dealloc?,
         })
     }
 
-    pub unsafe fn as_mut(&self, wasm_slice: WasmSlice) -> &mut [u8] {
+    /// Safety, the returned array is uninitialized
+    pub unsafe fn as_mut(&mut self, wasm_slice: WasmSlice) -> &mut [u8] {
         debug!("data ptr: {}", wasm_slice.ptr);
 
         &mut self.memory.data_unchecked_mut()[wasm_slice.ptr as usize..][..wasm_slice.len as usize]
     }
 
     /// Allocates size bytes in the Wasm Memory context, returns the offset into the Memory region
-    fn alloc_size(&self, size: usize) -> Result<WasmSlice, Error> {
+    pub unsafe fn alloc_size(&self, size: usize) -> Result<WasmSlice, Error> {
         let len = size as i32;
         let ptr = self
-            .allocator
+            .alloc
             .call(&[Val::I32(len)])?
             .get(0)
             .and_then(|v| v.i32())
-            .ok_or_else(|| anyhow!("i32 was not returned from the allocator"))?;
+            .ok_or_else(|| anyhow!("i32 was not returned from the alloc"))?;
 
         debug!("Allocated offset {} len {}", ptr, len);
 
@@ -60,7 +71,8 @@ impl WasmAlloc {
     }
 
     /// Allocates the bytes from the src bytes
-    pub fn alloc_bytes(&self, src: &[u8]) -> Result<WasmSlice, Error> {
+    pub fn alloc_bytes(&mut self, src: &[u8]) -> Result<WasmSlice, Error> {
+        let mem_base = self.memory.data_ptr() as usize;
         let mem_size = self.memory.size() as usize * MEM_SEGMENT_SIZE;
         ensure!(
             mem_size > src.len(),
@@ -70,22 +82,33 @@ impl WasmAlloc {
         );
 
         // get target memor location and then copy into the function
-        let wasm_slice = self.alloc_size(src.len())?;
+        let wasm_slice = unsafe { self.alloc_size(src.len())? };
         let mem_bytes = unsafe { self.as_mut(wasm_slice) };
         mem_bytes.copy_from_slice(src);
 
         debug!(
             "copied bytes into mem: {:x?}, mem_base: {:x?} mem_bytes: {:x?}",
             mem_bytes,
-            self.memory.data_ptr(),
+            mem_base,
             mem_bytes.as_ptr(),
         );
 
         Ok(wasm_slice)
     }
 
-    pub fn alloc<T: Sized>(&self) -> Result<i32, Error> {
-        let wasm_slice = self.alloc_size(mem::size_of::<T>())?;
+    /// Deallocate the WasmSlice
+    pub fn dealloc_bytes(&self, slice: WasmSlice) -> Result<(), Error> {
+        let WasmSlice { ptr, len } = slice;
+        self.dealloc
+            .call(&[Val::I32(ptr), Val::I32(len)])
+            .with_context(|| anyhow!("failed to deallocate bytes"))?;
+
+        debug!("Deallocated offset {} len {}", ptr, len);
+        Ok(())
+    }
+
+    pub fn alloc<T: Sized>(&mut self) -> Result<i32, Error> {
+        let wasm_slice = unsafe { self.alloc_size(mem::size_of::<T>())? };
 
         // zero out the memory...
         for b in unsafe { self.as_mut(wasm_slice) } {
@@ -100,11 +123,20 @@ impl WasmAlloc {
         Ok(wasm_slice.ptr)
     }
 
-    pub unsafe fn obj_as_mut<'a, T: Sized>(&'a self, ptr: i32) -> &'a mut T {
+    pub unsafe fn obj_as_mut<T: Sized>(&mut self, ptr: i32) -> &mut T {
         debug_assert!(ptr > 0);
         let ptr_to_mem = self.memory.data_ptr().add(ptr as usize);
         debug!("dereffing {:x?} from offset {:x?}", ptr_to_mem, ptr);
 
         &mut *(ptr_to_mem as *mut T)
+    }
+
+    #[allow(unused)]
+    pub fn dealloc<T: Sized>(&self, ptr: i32) -> Result<(), Error> {
+        debug_assert!(ptr > 0);
+        let len = mem::size_of::<T>() as i32;
+        let wasm_slice = WasmSlice { ptr, len };
+
+        self.dealloc_bytes(wasm_slice)
     }
 }

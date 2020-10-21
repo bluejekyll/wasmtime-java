@@ -40,14 +40,14 @@ pub(crate) trait ReturnAbi: Abi {
     #[allow(unused)]
     fn return_or_store_to_arg(
         args: &mut Vec<Val>,
-        wasm_alloc: Option<&WasmAlloc>,
+        wasm_alloc: Option<&mut WasmAlloc>,
     ) -> Result<Option<i32>, Error>;
 
     /// Load from the argument list
     fn return_or_load_or_from_args(
         ret: Option<&Val>,
         ret_by_ref_ptr: Option<i32>,
-        wasm_alloc: Option<&WasmAlloc>,
+        wasm_alloc: Option<&mut WasmAlloc>,
     ) -> Result<Self, anyhow::Error>;
 }
 
@@ -62,7 +62,7 @@ impl<T: Abi + IntoValType + FromVal + MatchesValType> ReturnAbi for T {
     #[allow(unused)]
     fn return_or_store_to_arg(
         args: &mut Vec<Val>,
-        wasm_alloc: Option<&WasmAlloc>,
+        wasm_alloc: Option<&mut WasmAlloc>,
     ) -> Result<Option<i32>, Error> {
         Ok(None)
     }
@@ -75,7 +75,7 @@ impl<T: Abi + IntoValType + FromVal + MatchesValType> ReturnAbi for T {
     fn return_or_load_or_from_args(
         mut ret: Option<&Val>,
         _ret_by_ref_ptr: Option<i32>,
-        _wasm_alloc: Option<&WasmAlloc>,
+        _wasm_alloc: Option<&mut WasmAlloc>,
     ) -> Result<Self, anyhow::Error> {
         ret.take()
             .cloned()

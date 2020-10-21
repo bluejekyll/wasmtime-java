@@ -33,9 +33,23 @@ public class SliceTests {
         assertEquals(hello, from_wasm);
     }
 
+    public final byte[] reverse_bytes_java(ByteBuffer buffer) {
+        ByteBuffer toReverse = buffer.duplicate();
+        byte[] bytes = new byte[toReverse.remaining()];
+
+        for (int i = bytes.length -1 ; i >= 0; i--) {
+            bytes[i] = toReverse.get();
+        }
+
+        return bytes;
+    }
+
     public void link(WasmStore store, WasmLinker linker) throws WasmtimeException, NoSuchMethodException {
         WasmFunction hello_to_java = WasmFunction.newFunc(store, this, "hello_to_java", ByteBuffer.class);
         linker.defineFunction("test", "hello_to_java", hello_to_java);
+
+        WasmFunction reverse_bytes_java = WasmFunction.newFunc(store, this, "reverse_bytes_java", ByteBuffer.class);
+        linker.defineFunction("test", "reverse_bytes_java", reverse_bytes_java);
     }
 
     @Test
@@ -108,13 +122,41 @@ public class SliceTests {
             ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
             buffer.put(bytes);
 
-            ByteBuffer ret = function.call(instance, ByteBuffer.class, buffer);
+            byte[] ret = function.call(instance, byte[].class, buffer);
             assertNotNull(ret);
-            assertEquals(bytes.length, ret.remaining());
+            assertEquals(bytes.length, ret.length);
 
-            byte[] reversed = new byte[bytes.length];
-            ret.get(reversed);
-            assertArrayEquals(reversed, new byte[] { 3, 2, 1, 0 });
+            assertArrayEquals(ret, new byte[] { 3, 2, 1, 0 });
+        }
+    }
+
+    @Test
+    public void testReverseBytesInJava() throws Exception {
+        Wasmtime wasm = new Wasmtime();
+        try (WasmEngine engine = wasm.newWasmEngine();
+                WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
+                WasmStore store = engine.newStore();
+                WasmLinker linker = store.newLinker()) {
+            System.out.println("slices compiled");
+            assertNotNull(module);
+
+            link(store, linker);
+
+            WasmInstance instance = linker.instantiate(module);
+            Optional<WasmFunction> func = instance.getFunction("reverse_bytes_in_java");
+
+            assertTrue("print_bytes isn't present in the module", func.isPresent());
+            WasmFunction function = func.get();
+
+            byte[] bytes = new byte[] { 0, 1, 2, 3 };
+            ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
+            buffer.put(bytes);
+
+            byte[] ret = function.call(instance, byte[].class, buffer);
+            assertNotNull(ret);
+            assertEquals(bytes.length, ret.length);
+
+            assertArrayEquals(ret, new byte[] { 3, 2, 1, 0 });
         }
     }
 }
