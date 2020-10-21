@@ -9,6 +9,7 @@ extern "C" {
 /// Greetings
 ///
 /// # Safety
+/// Passed in WasmSlice is owned by caller
 #[no_mangle]
 pub unsafe extern "C" fn greet(name: WasmSlice) {
     let name = name.as_bytes();
@@ -17,6 +18,8 @@ pub unsafe extern "C" fn greet(name: WasmSlice) {
     println!("Hello, {}!", name);
 }
 
+/// # Safety
+/// Passed in WasmSlice is owned by caller
 #[no_mangle]
 pub unsafe extern "C" fn say_hello_to(name: WasmSlice, response: &mut WasmSlice) {
     let name = name.as_bytes();
@@ -40,6 +43,8 @@ pub unsafe extern "C" fn say_hello_to(name: WasmSlice, response: &mut WasmSlice)
     };
 }
 
+/// # Safety
+/// Passed in WasmSlice is owned by caller
 #[no_mangle]
 pub unsafe extern "C" fn say_hello_in_java(name: WasmSlice, response: &mut WasmSlice) {
     say_hello_to_java(name, response)
