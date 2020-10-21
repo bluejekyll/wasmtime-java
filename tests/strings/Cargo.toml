@@ -8,4 +8,5 @@ edition = "2018"
 crate-type = ['cdylib']
 
 [dependencies]
+wasmtime-jni-exports = { path = "../../wasmtime-jni-exports" }
 
