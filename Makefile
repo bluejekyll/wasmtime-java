@@ -76,8 +76,14 @@ test: build
 
 .PHONY: mvn-test
 mvn-test: target/native
-	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn test
+	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn verify
 
 .PHONY: mvn-compile
 mvn-compile: target/native
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn compile
+
+.PHONY: cleanliness
+cleanliness:
+	cargo clean -p wasmtime-jni -p wasmtime-jni-exports -p math -p slices -p strings
+	cargo clippy -- -D warnings
+	cargo fmt -- --check
