@@ -5,7 +5,7 @@ use log::debug;
 use wasmtime::{Val, ValType, WeakStore};
 pub use wasmtime_jni_exports::WasmSlice;
 
-use crate::ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc};
+use crate::ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc, WasmSliceWrapper};
 
 // pub fn greet(name: &str) -> String {
 //     format!("Hello, {}!", name)
@@ -145,17 +145,17 @@ impl ReturnAbi for WasmSlice {
 
     /// Place the values in the argument list, if there was an allocation, the pointer is returned
     #[allow(unused)]
-    fn return_or_store_to_arg(
+    fn return_or_store_to_arg<'w>(
         args: &mut Vec<Val>,
-        wasm_alloc: Option<&mut WasmAlloc>,
-    ) -> Result<Option<i32>, Error> {
+        wasm_alloc: Option<&'w WasmAlloc>,
+    ) -> Result<Option<WasmSliceWrapper<'w>>, Error> {
         // create a place in memory for the slice to be returned
-        let ptr = wasm_alloc
+        let slice = wasm_alloc
             .ok_or_else(|| anyhow!("WasmAlloc not supplied"))?
             .alloc::<Self>()?;
 
-        args.push(Val::from(ptr));
-        Ok(Some(ptr))
+        args.push(Val::from(slice.ptr));
+        Ok(Some(slice))
     }
 
     fn get_return_by_ref_arg(mut args: impl Iterator<Item = Val>) -> Option<i32> {
@@ -165,15 +165,14 @@ impl ReturnAbi for WasmSlice {
     /// Load from the returned value, or from the passed in pointer to the return by ref parameter
     fn return_or_load_or_from_args(
         _ret: Option<&Val>,
-        mut ret_by_ref_ptr: Option<i32>,
-        wasm_alloc: Option<&mut WasmAlloc>,
+        mut ret_by_ref_ptr: Option<WasmSliceWrapper<'_>>,
+        _wasm_alloc: Option<&WasmAlloc>,
     ) -> Result<Self, anyhow::Error> {
         let ptr = ret_by_ref_ptr
             .take()
             .ok_or_else(|| anyhow!("No pointer was supplied"))?;
-        let wasm_alloc = wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc was not supplied"))?;
+        let wasm_slice = unsafe { ptr.obj_as_mut() };
 
-        let wasm_slice = unsafe { wasm_alloc.obj_as_mut(ptr) };
         debug!("read {:?}", wasm_slice);
         Ok(*wasm_slice)
     }

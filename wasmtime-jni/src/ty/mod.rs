@@ -4,4 +4,4 @@ mod wasm_alloc;
 
 pub(crate) use byte_slice::WasmSlice;
 pub(crate) use complex_ty::{Abi, ComplexTy, ReturnAbi};
-pub(crate) use wasm_alloc::WasmAlloc;
+pub(crate) use wasm_alloc::{WasmAlloc, WasmSliceWrapper};
