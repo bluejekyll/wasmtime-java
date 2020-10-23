@@ -50,6 +50,7 @@ impl WasmAlloc {
     }
 
     /// Safety, the returned array is uninitialized
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn as_mut(&self, wasm_slice: WasmSlice) -> &mut [u8] {
         debug!("data ptr: {}", wasm_slice.ptr);
 
@@ -125,6 +126,7 @@ impl WasmAlloc {
         Ok(wasm_slice)
     }
 
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn obj_as_mut<T: Sized>(&self, ptr: i32) -> &mut T {
         debug_assert!(ptr > 0);
         let ptr_to_mem = self.memory.data_ptr().add(ptr as usize);
@@ -158,10 +160,12 @@ impl<'w> WasmSliceWrapper<'w> {
     }
 
     /// Safety, the returned array is uninitialized
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn as_mut(&self) -> &mut [u8] {
         self.wasm_alloc.as_mut(self.wasm_slice)
     }
 
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn obj_as_mut<T: Sized>(&self) -> &mut T {
         self.wasm_alloc.obj_as_mut(self.wasm_slice.ptr)
     }
