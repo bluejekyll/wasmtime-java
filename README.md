@@ -1,4 +1,4 @@
-![test](https://github.com/bluejekyll/wasmtime-java/workflows/test/badge.svg?branch=main)
+[![test](https://github.com/bluejekyll/wasmtime-java/workflows/test/badge.svg?branch=main)](https://github.com/bluejekyll/wasmtime-java/actions?query=workflow%3Atest)
 
 # Java bindings to the Wasmtime runtime engine
 
