@@ -1,7 +1,7 @@
 use anyhow::{anyhow, ensure, Error};
 use wasmtime::{Val, ValType, WeakStore};
 
-use crate::ty::WasmAlloc;
+use crate::ty::{WasmAlloc, WasmSliceWrapper};
 
 pub(crate) trait ComplexTy {
     type Abi: Abi;
@@ -38,16 +38,16 @@ pub(crate) trait ReturnAbi: Abi {
 
     /// Place the values in the argument list
     #[allow(unused)]
-    fn return_or_store_to_arg(
+    fn return_or_store_to_arg<'w>(
         args: &mut Vec<Val>,
-        wasm_alloc: Option<&mut WasmAlloc>,
-    ) -> Result<Option<i32>, Error>;
+        wasm_alloc: Option<&'w WasmAlloc>,
+    ) -> Result<Option<WasmSliceWrapper<'w>>, Error>;
 
     /// Load from the argument list
     fn return_or_load_or_from_args(
         ret: Option<&Val>,
-        ret_by_ref_ptr: Option<i32>,
-        wasm_alloc: Option<&mut WasmAlloc>,
+        ret_by_ref_ptr: Option<WasmSliceWrapper<'_>>,
+        wasm_alloc: Option<&WasmAlloc>,
     ) -> Result<Self, anyhow::Error>;
 }
 
@@ -60,10 +60,10 @@ impl<T: Abi + IntoValType + FromVal + MatchesValType> ReturnAbi for T {
 
     /// Place the values in the argument list
     #[allow(unused)]
-    fn return_or_store_to_arg(
+    fn return_or_store_to_arg<'w>(
         args: &mut Vec<Val>,
-        wasm_alloc: Option<&mut WasmAlloc>,
-    ) -> Result<Option<i32>, Error> {
+        wasm_alloc: Option<&'w WasmAlloc>,
+    ) -> Result<Option<WasmSliceWrapper<'w>>, Error> {
         Ok(None)
     }
 
@@ -74,8 +74,8 @@ impl<T: Abi + IntoValType + FromVal + MatchesValType> ReturnAbi for T {
     /// Load from the argument list
     fn return_or_load_or_from_args(
         mut ret: Option<&Val>,
-        _ret_by_ref_ptr: Option<i32>,
-        _wasm_alloc: Option<&mut WasmAlloc>,
+        _ret_by_ref_ptr: Option<WasmSliceWrapper<'_>>,
+        _wasm_alloc: Option<&WasmAlloc>,
     ) -> Result<Self, anyhow::Error> {
         ret.take()
             .cloned()
