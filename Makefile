@@ -82,6 +82,10 @@ mvn-test: target/native
 mvn-compile: target/native
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn compile
 
+.PHONY: package
+package: build
+	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn package
+
 .PHONY: cleanliness
 cleanliness:
 	cargo clean -p wasmtime-jni -p wasmtime-jni-exports -p math -p slices -p strings
