@@ -75,8 +75,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
             None
         };
 
-        let wasm_ret: Box<[ValType]> =
-            wasm_ret.map_or_else(|| Box::new([]) as Box<_>, |v| Box::new([v]) as Box<_>);
+        let wasm_ret: Vec<ValType> = wasm_ret.map_or_else(|| vec![], |v| vec![v]);
 
         let func = move |caller: Caller, inputs: &[Val], outputs: &mut [Val]| -> Result<(), Trap> {
             let java_args = &java_args;
@@ -235,21 +234,14 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     let len = env
                         .get_array_length(jarray)
                         .context("failed to get Java array length")?;
-                    let (jbytes, _is_copy) = env
-                        .get_byte_array_elements(jarray)
+                    let jbytes = env
+                        .get_byte_array_elements(jarray, ReleaseMode::NoCopyBack)
                         .context("failed to get java array elements")?;
-                    let byte_array: &[u8] =
-                        unsafe { slice::from_raw_parts(jbytes as *const u8, len as usize) };
+                    let byte_array: &[u8] = unsafe {
+                        slice::from_raw_parts(jbytes.as_ptr() as *const u8, len as usize)
+                    };
 
                     let bytes = wasm_alloc.alloc_bytes(byte_array)?;
-
-                    // release the array reference, CopyBack is following the JNI guidelines
-                    env.release_byte_array_elements(
-                        jarray,
-                        unsafe { &mut *jbytes },
-                        ReleaseMode::CopyBack,
-                    )
-                    .context("failed to release Java array elements")?;
 
                     // get mutable reference to the return by ref pointer and then store
                     unsafe {
@@ -311,11 +303,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
             Ok(())
         };
 
-        let func = Func::new(
-            &store,
-            FuncType::new(wasm_args.into_boxed_slice(), wasm_ret),
-            func,
-        );
+        let func = Func::new(&store, FuncType::new(wasm_args, wasm_ret), func);
 
         Ok(OpaquePtr::from(func).make_opaque())
     })

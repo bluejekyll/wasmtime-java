@@ -238,22 +238,15 @@ impl<'j> WasmVal<'j> {
             WasmVal::ByteArray { jarray, .. } => {
                 // This is should be safe, it's copied into while borrowed the WASM context.
                 let len = env.get_array_length(jarray)?;
-                let (jbytes, _is_copy) = env.get_byte_array_elements(jarray)?;
+                let jbytes = env.get_byte_array_elements(jarray, ReleaseMode::NoCopyBack)?;
                 let byte_array: &[u8] =
-                    unsafe { slice::from_raw_parts(jbytes as *const u8, len as usize) };
+                    unsafe { slice::from_raw_parts(jbytes.as_ptr() as *const u8, len as usize) };
 
                 // the module might not have the memory exported
                 let wasm_alloc = wasm_alloc
                     .ok_or_else(|| anyhow!("no memory or allocator supplied from module"))?;
                 let wasm_slice = wasm_alloc.alloc_bytes(byte_array)?;
 
-                // release the array reference, CopyBack is following the JNI guidelines
-                env.release_byte_array_elements(
-                    jarray,
-                    unsafe { &mut *jbytes },
-                    ReleaseMode::CopyBack,
-                )
-                .context("failed to release Java array elements")?;
                 wasm_slice.store_to_args(args);
                 return Ok(Some(wasm_slice));
             }

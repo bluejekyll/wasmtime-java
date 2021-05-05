@@ -14,8 +14,10 @@ crate_type = ["cdylib"]
 anyhow = "1.0.32"
 flexi_logger = "0.16.1"
 #env_logger = "0.7.1"
-jni = "0.17.0"
+jni = "0.19.0"
 log = "0.4.11"
-wasmtime = { version = "0.20", features=["jitdump", "wat", "cache"] }
+wasi-common = "0.26.0"
+wasi-cap-std-sync = "0.26.0"
+wasmtime = { version = "0.26", features=["jitdump", "wat", "cache"] }
 wasmtime-jni-exports = { path = "../wasmtime-jni-exports" }
-wasmtime-wasi = "0.20.0"
+wasmtime-wasi = "0.26.0"

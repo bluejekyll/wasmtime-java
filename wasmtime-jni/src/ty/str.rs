@@ -12,12 +12,12 @@ impl<'j> WasmTy for WasmJString<'j> {
     type Abi = WasmSlice;
 
     #[inline]
-    fn compatible_with_store<'a>(&self, _store: WeakStore<'a>) -> bool {
+    fn compatible_with_store(&self, _store: &Store) -> bool {
         true
     }
 
     #[inline]
-    fn into_abi<'a>(self, store: WeakStore<'a>) -> Self::Abi {
+    fn into_abi(self, store: &Store) -> Self::Abi {
         let jstr = self
             .env
             .get_string(&self.string)
@@ -33,7 +33,7 @@ impl<'j> WasmTy for WasmJString<'j> {
     }
 
     #[inline]
-    unsafe fn from_abi<'a>(abi: Self::Abi, _store: WeakStore<'a>) -> Self {
+    unsafe fn from_abi<'a>(abi: Self::Abi, _store: &Store) -> Self {
         unimplemented!();
     }
 

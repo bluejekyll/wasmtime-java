@@ -1,12 +1,12 @@
 use anyhow::{anyhow, ensure, Error};
-use wasmtime::{Val, ValType, WeakStore};
+use wasmtime::{Store, Val, ValType};
 
 use crate::ty::{WasmAlloc, WasmSliceWrapper};
 
 pub(crate) trait ComplexTy {
     type Abi: Abi;
 
-    fn compatible_with_store<'a>(&self, _store: WeakStore<'a>) -> bool;
+    fn compatible_with_store(&self, _store: &Store) -> bool;
 }
 
 pub(crate) trait Abi: Copy {
@@ -197,7 +197,7 @@ macro_rules! direct_complex_ty {
         impl ComplexTy for $t {
             type Abi = Self;
 
-            fn compatible_with_store<'a>(&self, _store: WeakStore<'a>) -> bool {
+            fn compatible_with_store(&self, _store: &Store) -> bool {
                 true
             }
         }

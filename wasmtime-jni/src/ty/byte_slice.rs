@@ -2,7 +2,7 @@ use std::ops::Deref;
 
 use anyhow::{anyhow, ensure, Error};
 use log::debug;
-use wasmtime::{Val, ValType, WeakStore};
+use wasmtime::{Store, Val, ValType};
 pub use wasmtime_jni_exports::WasmSlice;
 
 use crate::ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc, WasmSliceWrapper};
@@ -79,7 +79,7 @@ impl ComplexTy for ByteSlice {
     type Abi = WasmSlice;
 
     #[inline]
-    fn compatible_with_store<'a>(&self, _store: WeakStore<'a>) -> bool {
+    fn compatible_with_store(&self, _store: &Store) -> bool {
         true
     }
 }

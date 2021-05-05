@@ -4,7 +4,7 @@ use jni::objects::{JClass, JString};
 use jni::sys::jlong;
 use jni::JNIEnv;
 use wasmtime::{Func, Linker, Module};
-use wasmtime_wasi::{Wasi, WasiCtx};
+use wasmtime_wasi::Wasi;
 
 use crate::opaque_ptr::OpaquePtr;
 use crate::wasm_exception;
@@ -70,7 +70,11 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_instantiateNtv<'j
 ) -> jlong {
     wasm_exception::attempt(&env, |_env| {
         let store = linker.store();
-        let wasi = Wasi::new(&store, WasiCtx::new(std::env::args())?);
+        let wasi_ctx = wasi_cap_std_sync::WasiCtxBuilder::new()
+            .inherit_env()?
+            .build()?;
+
+        let wasi = Wasi::new(&store, wasi_ctx);
         wasi.add_to_linker(&mut linker)?;
 
         let instance = linker.instantiate(&module)?;
