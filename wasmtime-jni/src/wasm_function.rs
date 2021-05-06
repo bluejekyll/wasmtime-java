@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use std::slice;
 
 use anyhow::{anyhow, Context, Error};
-use jni::objects::{JClass, JMethodID, JObject, JValue, ReleaseMode};
+use jni::objects::{JClass, JMethodID, JObject, JString, JValue, ReleaseMode};
 use jni::signature::JavaType;
 use jni::sys::{jlong, jobject, jobjectArray};
 use jni::JNIEnv;
@@ -39,6 +39,9 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
         let method = env.new_global_ref(method)?;
         let obj = env.new_global_ref(obj)?;
         let jvm = env.get_java_vm()?;
+
+        let method_name = get_method_name(env, &method)?;
+        debug!("building WASM function from method: \"{}\"", method_name);
 
         // collect all the arguments from
         let param_list = env.get_list(param_tys)?;
@@ -303,7 +306,13 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
             Ok(())
         };
 
-        let func = Func::new(&store, FuncType::new(wasm_args, wasm_ret), func);
+        let func_type = FuncType::new(wasm_args, wasm_ret);
+        debug!(
+            "method \"{}\" as function in WASM: {:?}",
+            method_name, func_type
+        );
+
+        let func = Func::new(&store, func_type, func);
 
         Ok(OpaquePtr::from(func).make_opaque())
     })
@@ -421,4 +430,15 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
             Ok(ret.into_inner())
         },
     )
+}
+
+fn get_method_name<'j, O>(env: &JNIEnv<'j>, object: O) -> Result<String, Error>
+where
+    O: Into<JObject<'j>>,
+{
+    let name = env.call_method(object, "getName", "()Ljava/lang/String;", &[])?;
+    let name = name.l()?;
+    let name = JString::from(name);
+    let name = env.get_string(name)?;
+    Ok(Cow::from(&name).to_string())
 }

@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use jni::objects::{JClass, JString};
 use jni::sys::jlong;
 use jni::JNIEnv;
+use log::debug;
 use wasmtime::Instance;
 
 use crate::opaque_ptr::OpaquePtr;
@@ -45,6 +46,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmInstance_getFunctionNtv<
         let func = instance.get_func(&name);
 
         let func_ptr = if let Some(func) = func {
+            debug!("found function in WASM: {}:{:?}", name, func.ty());
             let func = OpaquePtr::from(func);
             func.make_opaque()
         } else {

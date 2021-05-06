@@ -3,7 +3,7 @@ use wasmtime_jni_exports::WasmSlice;
 /// test imports from Java
 #[link(wasm_import_module = "test")]
 extern "C" {
-    fn say_hello_to_java(data: WasmSlice, response: &mut WasmSlice);
+    fn say_hello_to_java(data_ptr: i32, data_len: i32, response: &mut WasmSlice);
 }
 
 /// Greetings
@@ -11,7 +11,11 @@ extern "C" {
 /// # Safety
 /// Passed in WasmSlice is owned by caller
 #[no_mangle]
-pub unsafe extern "C" fn greet(name: WasmSlice) {
+pub unsafe extern "C" fn greet(name_ptr: i32, name_len: i32) {
+    let name = WasmSlice {
+        ptr: name_ptr,
+        len: name_len,
+    };
     let name = name.as_bytes();
     let name = String::from_utf8_lossy(name);
 
@@ -21,7 +25,11 @@ pub unsafe extern "C" fn greet(name: WasmSlice) {
 /// # Safety
 /// Passed in WasmSlice is owned by caller
 #[no_mangle]
-pub unsafe extern "C" fn say_hello_to(name: WasmSlice, response: &mut WasmSlice) {
+pub unsafe extern "C" fn say_hello_to(name_ptr: i32, name_len: i32, response: &mut WasmSlice) {
+    let name = WasmSlice {
+        ptr: name_ptr,
+        len: name_len,
+    };
     let name = name.as_bytes();
     let name = String::from_utf8_lossy(name);
 
@@ -46,6 +54,6 @@ pub unsafe extern "C" fn say_hello_to(name: WasmSlice, response: &mut WasmSlice)
 /// # Safety
 /// Passed in WasmSlice is owned by caller
 #[no_mangle]
-pub unsafe extern "C" fn say_hello_in_java(name: WasmSlice, response: &mut WasmSlice) {
-    say_hello_to_java(name, response)
+pub unsafe extern "C" fn say_hello_in_java(data_ptr: i32, data_len: i32, response: &mut WasmSlice) {
+    say_hello_to_java(data_ptr, data_len, response)
 }

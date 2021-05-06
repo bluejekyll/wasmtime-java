@@ -66,6 +66,7 @@ impl From<Vec<u8>> for WasmSlice {
     }
 }
 
+// FIXME: this either needs a Drop impl or should take a slice of bytes and have an associated lifetime instead...
 impl From<Box<[u8]>> for WasmSlice {
     #[inline]
     fn from(bytes: Box<[u8]>) -> Self {
@@ -76,5 +77,29 @@ impl From<Box<[u8]>> for WasmSlice {
         // println!("storing Box<[u8]> at {} len {}", ptr, len);
 
         Self { ptr, len }
+    }
+}
+
+impl WasmString {
+    /// # Safety
+    /// This relies on the ptr and len being accurate for the current memory environment. Inside a WASM runtime for example.
+    #[inline]
+    pub unsafe fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+}
+
+/// A WasmSlice is an offset into the local `memory` of the WASM module instance.
+///
+/// It is only valid in the context of a `memory` contiguous region and a module's associated `Store`
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug)]
+pub struct WasmString(WasmSlice);
+
+impl From<String> for WasmString {
+    #[inline]
+    fn from(s: String) -> Self {
+        let bytes = s.into_bytes();
+        WasmString(WasmSlice::from(bytes))
     }
 }

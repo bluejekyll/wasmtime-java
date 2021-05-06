@@ -30,6 +30,7 @@ endif
 WASMTIME_TARGET_DIR := ${PWD}/target
 NATIVE_TARGET_DIR := ${PWD}/target/native/${PLATFORM}/${ARCH}
 WASM_TESTS := $(wildcard tests/*/Cargo.toml)
+RUSTV := "+stable"
 
 ## This can be changed to the different wasm targets
 # WASM_TARGET := wasm32-unknown-unknown
@@ -39,7 +40,7 @@ WASM_TARGET := wasm32-wasi
 init:
 	@echo "====> Testing for all tools"
 	@mvn -version || (echo maven is required, e.g. 'brew install maven' && mvn -version)
-	@cargo --version || (echo rust is required, e.g. 'curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh' && cargo --version)
+	@cargo ${RUSTV} --version || (echo rust is required, e.g. 'curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh' && cargo --version)
 	rustup target add ${WASM_TARGET}
 
 .PHONY: clean
@@ -50,14 +51,14 @@ clean:
 
 target/native:
 	@echo "====> Building wasmtime-jni for ${PLATFORM} arch ${ARCH}"
-	cd wasmtime-jni && cargo build ${RELEASE} --lib
+	cd wasmtime-jni && cargo ${RUSTV} build ${RELEASE} --lib
 	@mkdir -p ${NATIVE_TARGET_DIR}
 	@cp -rpf ${WASMTIME_TARGET_DIR}/debug/*.${DYLIB_EXT} ${NATIVE_TARGET_DIR}/
 
 .PHONY: build
 build:
 	@echo "====> Building"
-	cd wasmtime-jni && cargo build
+	cd wasmtime-jni && cargo ${RUSTV} build
 	$(MAKE) ${WASM_TESTS}
 
 	rm -rf ${PWD}/target/native
@@ -66,12 +67,12 @@ build:
 .PHONY: ${WASM_TESTS}
 ${WASM_TESTS}:
 	@echo "====> Building $(dir $@)"
-	cd $(dir $@) && cargo build --target ${WASM_TARGET}
+	cd $(dir $@) && cargo ${RUSTV} build --target ${WASM_TARGET}
 
 .PHONY: test
 test: build
 	@echo "====> Testing"
-	cd wasmtime-jni && cargo test
+	cd wasmtime-jni && cargo ${RUSTV} test
 	$(MAKE) mvn-test
 
 .PHONY: mvn-test
@@ -88,6 +89,6 @@ package: build
 
 .PHONY: cleanliness
 cleanliness:
-	cargo clean -p wasmtime-jni -p wasmtime-jni-exports -p math -p slices -p strings
-	cargo clippy -- -D warnings
-	cargo fmt -- --check
+	cargo ${RUSTV} clean -p wasmtime-jni -p wasmtime-jni-exports -p math -p slices -p strings
+	cargo ${RUSTV} clippy -- -D warnings
+	cargo ${RUSTV} fmt -- --check
