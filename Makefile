@@ -87,8 +87,14 @@ mvn-compile: target/native
 package: build
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn package
 
+.PHONY: install
+install: package
+	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn install
+
 .PHONY: cleanliness
 cleanliness:
 	cargo ${RUSTV} clean -p wasmtime-jni -p wasmtime-jni-exports -p math -p slices -p strings
 	cargo ${RUSTV} clippy -- -D warnings
 	cargo ${RUSTV} fmt -- --check
+	cargo ${RUSTV} audit
+	

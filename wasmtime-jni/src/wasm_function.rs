@@ -78,7 +78,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
             None
         };
 
-        let wasm_ret: Vec<ValType> = wasm_ret.map_or_else(|| vec![], |v| vec![v]);
+        let wasm_ret: Vec<ValType> = wasm_ret.map_or_else(Vec::new, |v| vec![v]);
 
         let func = move |caller: Caller, inputs: &[Val], outputs: &mut [Val]| -> Result<(), Trap> {
             let java_args = &java_args;

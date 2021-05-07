@@ -45,11 +45,12 @@ public class WasmFunction extends AbstractOpaquePtr {
 
     /**
      * 
-     * @param instance the linked and compiled instance to call this function agains
+     * @param instance   the linked and compiled instance to call this function
+     *                   agains
      * @param returnType the class of the return type, Void for no return
-     * @param args     list of arguments for the function, must match those of the
-     *                 "wrapped" function
-     * @param <T>      return type matching the wrapped functions return type
+     * @param args       list of arguments for the function, must match those of the
+     *                   "wrapped" function
+     * @param <T>        return type matching the wrapped functions return type
      * @return If there is a return value for the function, otherwise Void
      * @throws WasmtimeException If any exception is thrown byt the underlying
      *                           function
