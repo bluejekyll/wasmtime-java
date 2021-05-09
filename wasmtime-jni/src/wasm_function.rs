@@ -238,7 +238,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                         .get_array_length(jarray)
                         .context("failed to get Java array length")?;
                     let jbytes = env
-                        .get_byte_array_elements(jarray, ReleaseMode::NoCopyBack)
+                        .get_byte_array_elements(jarray, ReleaseMode::CopyBack)
                         .context("failed to get java array elements")?;
                     let byte_array: &[u8] = unsafe {
                         slice::from_raw_parts(jbytes.as_ptr() as *const u8, len as usize)

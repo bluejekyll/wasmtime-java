@@ -238,7 +238,7 @@ impl<'j> WasmVal<'j> {
             WasmVal::ByteArray { jarray, .. } => {
                 // This is should be safe, it's copied into while borrowed the WASM context.
                 let len = env.get_array_length(jarray)?;
-                let jbytes = env.get_byte_array_elements(jarray, ReleaseMode::NoCopyBack)?;
+                let jbytes = env.get_byte_array_elements(jarray, ReleaseMode::CopyBack)?;
                 let byte_array: &[u8] =
                     unsafe { slice::from_raw_parts(jbytes.as_ptr() as *const u8, len as usize) };
 
