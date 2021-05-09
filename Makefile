@@ -27,10 +27,17 @@ ifeq (${PLATFORM}, Linux)
     DYLIB_EXT = so
 endif
 
+ifeq (${RELEASE}, --release)
+    DYLIB_PATH=release
+else
+    DYLIB_PATH=debug
+endif
+
 WASMTIME_TARGET_DIR := ${PWD}/target
 NATIVE_TARGET_DIR := ${PWD}/target/native/${PLATFORM}/${ARCH}
 WASM_TESTS := $(wildcard tests/*/Cargo.toml)
 RUSTV := "+stable"
+
 
 ## This can be changed to the different wasm targets
 # WASM_TARGET := wasm32-unknown-unknown
@@ -53,12 +60,12 @@ target/native:
 	@echo "====> Building wasmtime-jni for ${PLATFORM} arch ${ARCH}"
 	cd wasmtime-jni && cargo ${RUSTV} build ${RELEASE} --lib
 	@mkdir -p ${NATIVE_TARGET_DIR}
-	@cp -rpf ${WASMTIME_TARGET_DIR}/debug/*.${DYLIB_EXT} ${NATIVE_TARGET_DIR}/
+	@cp -rpf ${WASMTIME_TARGET_DIR}/${DYLIB_PATH}/*.${DYLIB_EXT} ${NATIVE_TARGET_DIR}/
 
 .PHONY: build
 build:
 	@echo "====> Building"
-	cd wasmtime-jni && cargo ${RUSTV} build
+	cd wasmtime-jni && cargo ${RUSTV} build ${RELEASE} --lib
 	$(MAKE) ${WASM_TESTS}
 
 	rm -rf ${PWD}/target/native
@@ -72,7 +79,7 @@ ${WASM_TESTS}:
 .PHONY: test
 test: build
 	@echo "====> Testing"
-	cd wasmtime-jni && cargo ${RUSTV} test
+	cd wasmtime-jni && cargo ${RUSTV} test ${RELEASE}
 	$(MAKE) mvn-test
 
 .PHONY: mvn-test
@@ -88,7 +95,8 @@ package: build
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn package
 
 .PHONY: install
-install: package
+install:
+	RELEASE=--release make package
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn install
 
 .PHONY: cleanliness
