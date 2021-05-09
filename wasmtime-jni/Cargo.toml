@@ -10,9 +10,6 @@ edition = "2018"
 name = "wasmtime_jni"
 crate_type = ["cdylib"]
 
-[profile.release]
-lto = true
-
 [dependencies]
 anyhow = "1.0.32"
 flexi_logger = "0.16.1"
