@@ -9,17 +9,14 @@ import java.nio.ByteBuffer;
 public class TestExport implements WasmExportable {
 
     @WasmExport(name = "hello_to_java")
-    public void helloToJava(ByteBuffer hello_bytes) {
+    public void helloToJava(byte[] hello_bytes) {
         final String hello = "Hello Java!";
 
-        System.out.printf("Hello length: %d%n", hello_bytes.capacity());
-
-        final byte[] bytes = new byte[hello_bytes.capacity()];
-        hello_bytes.get(bytes);
+        System.out.printf("Hello length: %d%n", hello_bytes.length);
 
         final String from_wasm;
         try {
-            from_wasm = new String(bytes, "UTF-8");
+            from_wasm = new String(hello_bytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             // this should never happen for UTF-8
             throw new RuntimeException(e);
@@ -30,12 +27,11 @@ public class TestExport implements WasmExportable {
     }
 
     @WasmExport(name = "reverse_bytes_java")
-    public final byte[] reverseBytesJava(ByteBuffer buffer) {
-        ByteBuffer toReverse = buffer.duplicate();
-        byte[] bytes = new byte[toReverse.remaining()];
+    public final byte[] reverseBytesJava(byte[] buffer) {
+        byte[] bytes = new byte[buffer.length];
 
         for (int i = bytes.length - 1; i >= 0; i--) {
-            bytes[i] = toReverse.get();
+            bytes[i] = buffer[buffer.length - 1 - i];
         }
 
         return bytes;

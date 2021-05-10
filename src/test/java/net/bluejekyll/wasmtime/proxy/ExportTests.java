@@ -77,10 +77,8 @@ public class ExportTests {
         WasmFunction function = func.get();
 
         byte[] bytes = new byte[] { 0, 1, 2, 3 };
-        ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-        buffer.put(bytes);
 
-        function.call(instance, buffer);
+        function.call(instance, bytes);
     }
 
     @Test
@@ -92,10 +90,8 @@ public class ExportTests {
         WasmFunction function = func.get();
 
         byte[] bytes = new byte[] { 0, 1, 2, 3 };
-        ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-        buffer.put(bytes);
 
-        byte[] ret = function.call(instance, byte[].class, buffer);
+        byte[] ret = function.call(instance, byte[].class, bytes);
         assertNotNull(ret);
         assertEquals(bytes.length, ret.length);
 
@@ -111,10 +107,8 @@ public class ExportTests {
         WasmFunction function = func.get();
 
         byte[] bytes = new byte[] { 0, 1, 2, 3 };
-        ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-        buffer.put(bytes);
 
-        byte[] ret = function.call(instance, byte[].class, buffer);
+        byte[] ret = function.call(instance, byte[].class, bytes);
         assertNotNull(ret);
         assertEquals(bytes.length, ret.length);
 

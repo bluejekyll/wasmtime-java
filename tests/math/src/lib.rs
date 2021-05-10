@@ -54,11 +54,13 @@ mod tests {
 
     #[test]
     fn test_add_f32() {
-        assert_eq!(add_f32(1.1, 2.2), 3.3);
+        assert!(add_f32(1.1, 2.2) > 3.2);
+        assert!(add_f32(1.1, 2.2) < 3.4);
     }
 
     #[test]
     fn test_add_f64() {
-        assert_eq!(add_f64(1.1, 2.2), 3.3);
+        assert!(add_f64(1.1, 2.2) > 3.2);
+        assert!(add_f64(1.1, 2.2) < 3.4);
     }
 }
