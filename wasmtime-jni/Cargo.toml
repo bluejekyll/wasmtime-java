@@ -12,7 +12,7 @@ crate_type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.32"
-flexi_logger = "0.16.1"
+flexi_logger = "0.17.1"
 #env_logger = "0.7.1"
 jni = "0.19.0"
 log = "0.4.11"
