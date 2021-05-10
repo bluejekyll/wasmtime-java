@@ -16,6 +16,29 @@ use crate::ty::{WasmAlloc, WasmSlice};
 use crate::wasm_exception;
 use crate::wasm_value::{self, WasmTy, WasmVal};
 
+/// Take ths src_bytes and copy into the location at ret_by_ref_ptr as a reference.
+///   This will forget the allocation, as it is expected that the function accepting the reference will own the
+///   data afterward.
+///
+/// # Safety
+///
+/// A pointer with allocated memory for a type of (i32,i32) length is valid and exists at `ret_by_ref_ptr` in the WASM module
+unsafe fn pass_bytes_to_wasm_by_ref(
+    wasm_alloc: WasmAlloc,
+    ret_by_ref_ptr: i32,
+    src_bytes: &[u8],
+) -> Result<(), Trap> {
+    let bytes = wasm_alloc.alloc_bytes(src_bytes)?;
+
+    // get mutable reference to the return by ref pointer and then store
+    let ret_by_ref_loc = wasm_alloc.obj_as_mut::<WasmSlice>(ret_by_ref_ptr);
+    *ret_by_ref_loc = bytes.wasm_slice();
+
+    // This memory is owned by the WASM code after this...
+    std::mem::forget(bytes);
+    Ok(())
+}
+
 /// /*
 /// * Class:     net_bluejekyll_wasmtime_WasmFunction
 /// * Method:    createFunc
@@ -80,6 +103,9 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
 
         let wasm_ret: Vec<ValType> = wasm_ret.map_or_else(Vec::new, |v| vec![v]);
 
+        // This defines the lambda that will be called by the Wasmtime engine from the WASM module.
+        //   all params need to be converted to Java equivalent params, and return types need to be bound
+        //   correctly.
         let func = move |caller: Caller, inputs: &[Val], outputs: &mut [Val]| -> Result<(), Trap> {
             let java_args = &java_args;
             let java_ret = &java_ret;
@@ -211,23 +237,20 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     debug!("associating {:?} with result", val);
                     *result = val;
                 }
-                (Some(WasmVal::ByteBuffer(val)), None) => {
-                    debug!("allocating space and associating bytes for return by ref");
-                    let ptr = ret_by_ref_ptr
-                        .ok_or_else(|| anyhow!("expected return by ref argument pointer"))?;
-                    let wasm_alloc = wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc is required"))?;
+                // (Some(WasmVal::ByteBuffer(val)), None) => {
+                //     debug!("allocating space and associating bytes for return by ref");
+                //     let ptr = ret_by_ref_ptr
+                //         .ok_or_else(|| anyhow!("expected return by ref argument pointer"))?;
+                //     let wasm_alloc = wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc is required"))?;
 
-                    let bytes = env
-                        .get_direct_buffer_address(val)
-                        .context("could not get bytes from address")?;
+                //     let bytes = env
+                //         .get_direct_buffer_address(val)
+                //         .context("could not get bytes from address")?;
 
-                    // get mutable reference to the return by ref pointer and then store
-                    unsafe {
-                        let bytes = wasm_alloc.alloc_bytes(bytes)?;
-                        let ret_by_ref_loc = wasm_alloc.obj_as_mut::<WasmSlice>(ptr);
-                        *ret_by_ref_loc = bytes.wasm_slice();
-                    }
-                }
+                //     // get mutable reference to the return by ref pointer and then store
+                //     unsafe { pass_bytes_to_wasm_by_ref(wasm_alloc, ptr, byte_array)? };
+
+                // }
                 (Some(WasmVal::ByteArray { jarray, .. }), None) => {
                     debug!("allocating space and associating bytes for return by ref");
                     let ptr = ret_by_ref_ptr
@@ -244,13 +267,8 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                         slice::from_raw_parts(jbytes.as_ptr() as *const u8, len as usize)
                     };
 
-                    let bytes = wasm_alloc.alloc_bytes(byte_array)?;
-
                     // get mutable reference to the return by ref pointer and then store
-                    unsafe {
-                        let ret_by_ref_loc = wasm_alloc.obj_as_mut::<WasmSlice>(ptr);
-                        *ret_by_ref_loc = bytes.wasm_slice();
-                    }
+                    unsafe { pass_bytes_to_wasm_by_ref(wasm_alloc, ptr, byte_array)? };
                 }
                 (Some(WasmVal::String(string)), None) => {
                     debug!("allocating space and associating string for return by ref");
@@ -264,21 +282,15 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                     let cow = Cow::from(&jstr);
                     let cow_bytes = cow.as_bytes();
 
-                    // the module might not have the memory exported
-                    let wasm_slice = wasm_alloc.alloc_bytes(cow_bytes)?;
-
                     // get mutable reference to the return by ref pointer and then store
-                    unsafe {
-                        let ret_by_ref_loc = wasm_alloc.obj_as_mut::<WasmSlice>(ptr);
-                        *ret_by_ref_loc = wasm_slice.wasm_slice();
-                    }
+                    unsafe { pass_bytes_to_wasm_by_ref(wasm_alloc, ptr, cow_bytes)? };
                 }
-                (Some(WasmVal::ByteBuffer(_val)), Some(_result)) => {
-                    return Err(anyhow!(
-                        "Unexpected WASM return value, should have been return by reference"
-                    )
-                    .into());
-                }
+                // (Some(WasmVal::ByteBuffer(_val)), Some(_result)) => {
+                //     return Err(anyhow!(
+                //         "Unexpected WASM return value, should have been return by reference"
+                //     )
+                //     .into());
+                // }
                 (Some(WasmVal::ByteArray { .. }), Some(_result)) => {
                     return Err(anyhow!(
                         "Unexpected WASM return value, should have been return by reference"
@@ -400,7 +412,8 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
                 None
             };
 
-            // call the function
+            //
+            // Call the WASM function
             let val = func
                 .call(&wasm_args)
                 .with_context(|| format!("failed to execute wasm function: {:?}", *func))?;

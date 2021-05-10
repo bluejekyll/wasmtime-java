@@ -13,17 +13,14 @@ import static org.junit.Assert.*;
  * Tests corresponding to the Rust based WASM programs in /tests/slices
  */
 public class SliceTests {
-    public void hello_to_java(ByteBuffer hello_bytes) {
+    public void hello_to_java(byte[] hello_bytes) {
         final String hello = "Hello Java!";
 
-        System.out.printf("Hello length: %d%n", hello_bytes.capacity());
-
-        final byte[] bytes = new byte[hello_bytes.capacity()];
-        hello_bytes.get(bytes);
+        System.out.printf("Hello length: %d%n", hello_bytes.length);
 
         final String from_wasm;
         try {
-            from_wasm = new String(bytes, "UTF-8");
+            from_wasm = new String(hello_bytes, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             // this should never happen for UTF-8
             throw new RuntimeException(e);
@@ -33,22 +30,21 @@ public class SliceTests {
         assertEquals(hello, from_wasm);
     }
 
-    public final byte[] reverse_bytes_java(ByteBuffer buffer) {
-        ByteBuffer toReverse = buffer.duplicate();
-        byte[] bytes = new byte[toReverse.remaining()];
+    public final byte[] reverse_bytes_java(byte[] buffer) {
+        byte[] bytes = new byte[buffer.length];
 
-        for (int i = bytes.length -1 ; i >= 0; i--) {
-            bytes[i] = toReverse.get();
+        for (int i = bytes.length - 1; i >= 0; i--) {
+            bytes[i] = buffer[buffer.length - 1 - i];
         }
 
         return bytes;
     }
 
     public void link(WasmStore store, WasmLinker linker) throws WasmtimeException, NoSuchMethodException {
-        WasmFunction hello_to_java = WasmFunction.newFunc(store, this, "hello_to_java", ByteBuffer.class);
+        WasmFunction hello_to_java = WasmFunction.newFunc(store, this, "hello_to_java", byte[].class);
         linker.defineFunction("test", "hello_to_java", hello_to_java);
 
-        WasmFunction reverse_bytes_java = WasmFunction.newFunc(store, this, "reverse_bytes_java", ByteBuffer.class);
+        WasmFunction reverse_bytes_java = WasmFunction.newFunc(store, this, "reverse_bytes_java", byte[].class);
         linker.defineFunction("test", "reverse_bytes_java", reverse_bytes_java);
     }
 
@@ -93,10 +89,7 @@ public class SliceTests {
             WasmFunction function = func.get();
 
             byte[] bytes = new byte[] { 0, 1, 2, 3 };
-            ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-            buffer.put(bytes);
-
-            function.call(instance, buffer);
+            function.call(instance, bytes);
         }
     }
 
@@ -119,10 +112,7 @@ public class SliceTests {
             WasmFunction function = func.get();
 
             byte[] bytes = new byte[] { 0, 1, 2, 3 };
-            ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-            buffer.put(bytes);
-
-            byte[] ret = function.call(instance, byte[].class, buffer);
+            byte[] ret = function.call(instance, byte[].class, bytes);
             assertNotNull(ret);
             assertEquals(bytes.length, ret.length);
 
@@ -149,10 +139,7 @@ public class SliceTests {
             WasmFunction function = func.get();
 
             byte[] bytes = new byte[] { 0, 1, 2, 3 };
-            ByteBuffer buffer = ByteBuffer.allocateDirect(bytes.length);
-            buffer.put(bytes);
-
-            byte[] ret = function.call(instance, byte[].class, buffer);
+            byte[] ret = function.call(instance, byte[].class, bytes);
             assertNotNull(ret);
             assertEquals(bytes.length, ret.length);
 
