@@ -1,9 +1,10 @@
-use wasmtime_jni_exports::WasmSlice;
+use wasmtime_jni_exports::{Owned, WasmString};
 
 /// test imports from Java
 #[link(wasm_import_module = "test")]
 extern "C" {
-    fn say_hello_to_java(data_ptr: i32, data_len: i32, response: &mut WasmSlice);
+    // Ownership, the response should be freed by the caller
+    fn say_hello_to_java(data_ptr: i32, data_len: i32, response: &mut Owned<WasmString>);
 }
 
 /// Greetings
@@ -12,12 +13,8 @@ extern "C" {
 /// Passed in WasmSlice is owned by caller
 #[no_mangle]
 pub unsafe extern "C" fn greet(name_ptr: i32, name_len: i32) {
-    let name = WasmSlice {
-        ptr: name_ptr,
-        len: name_len,
-    };
-    let name = name.as_bytes();
-    let name = String::from_utf8_lossy(name);
+    let name = WasmString::borrowed(&name_ptr, name_len);
+    let name = name.from_utf8_lossy();
 
     println!("Hello, {}!", name);
 }
@@ -25,13 +22,13 @@ pub unsafe extern "C" fn greet(name_ptr: i32, name_len: i32) {
 /// # Safety
 /// Passed in WasmSlice is owned by caller
 #[no_mangle]
-pub unsafe extern "C" fn say_hello_to(name_ptr: i32, name_len: i32, response: &mut WasmSlice) {
-    let name = WasmSlice {
-        ptr: name_ptr,
-        len: name_len,
-    };
-    let name = name.as_bytes();
-    let name = String::from_utf8_lossy(name);
+pub unsafe extern "C" fn say_hello_to(
+    name_ptr: i32,
+    name_len: i32,
+    response: &mut Owned<WasmString>,
+) {
+    let name = WasmString::borrowed(&name_ptr, name_len);
+    let name = name.from_utf8_lossy();
 
     let hello_to = format!("Hello, {}!", name);
     let hello_to = hello_to.into_boxed_str(); // make this a heap allocated str (this makes capacity == len)
@@ -45,15 +42,18 @@ pub unsafe extern "C" fn say_hello_to(name_ptr: i32, name_len: i32, response: &m
     let len = hello_to.len();
     let ptr = Box::into_raw(hello_to);
 
-    *response = WasmSlice {
-        ptr: ptr as *const u8 as i32,
-        len: len as i32,
-    };
+    *response = WasmString::owned(ptr as *const u8 as i32, len as i32);
 }
 
 /// # Safety
 /// Passed in WasmSlice is owned by caller
 #[no_mangle]
-pub unsafe extern "C" fn say_hello_in_java(data_ptr: i32, data_len: i32, response: &mut WasmSlice) {
+pub unsafe extern "C" fn say_hello_in_java(
+    data_ptr: i32,
+    data_len: i32,
+    response: &mut Owned<WasmString>,
+) {
+    // Technically after this call we "own" the response, but we pass that directly into the next method
+    //  which will then own freeing the memory (which is technically handled by the wasmtime-jni bindings)
     say_hello_to_java(data_ptr, data_len, response)
 }

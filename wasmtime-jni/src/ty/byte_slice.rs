@@ -3,7 +3,7 @@ use std::ops::Deref;
 use anyhow::{anyhow, ensure, Error};
 use log::debug;
 use wasmtime::{Store, Val, ValType};
-pub use wasmtime_jni_exports::WasmSlice;
+pub use wasmtime_jni_exports::{WasmAllocated, WasmSlice};
 
 use crate::ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc, WasmSliceWrapper};
 
@@ -91,7 +91,8 @@ impl Abi for WasmSlice {
     }
 
     fn store_to_args(self, args: &mut Vec<Val>) {
-        let WasmSlice { ptr, len } = self;
+        let ptr = self.ptr();
+        let len = self.len();
         args.push(Val::from(ptr as i32));
         args.push(Val::from(len as i32));
     }
@@ -109,7 +110,7 @@ impl Abi for WasmSlice {
             .i32()
             .ok_or_else(|| anyhow!("ptr not i32"))?;
 
-        Ok(WasmSlice { ptr, len })
+        unsafe { Ok(WasmSlice::new(ptr, len)) }
     }
 
     fn matches_arg_tys(mut tys: impl Iterator<Item = ValType>) -> anyhow::Result<()> {
@@ -154,7 +155,7 @@ impl ReturnAbi for WasmSlice {
             .ok_or_else(|| anyhow!("WasmAlloc not supplied"))?
             .alloc::<Self>()?;
 
-        args.push(Val::from(slice.ptr));
+        args.push(Val::from(slice.ptr()));
         Ok(Some(slice))
     }
 

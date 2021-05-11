@@ -6,7 +6,7 @@ use log::{debug, warn};
 use wasmtime::{Caller, Extern, Func, Instance, Memory, Val};
 use wasmtime_jni_exports::{ALLOC_EXPORT, DEALLOC_EXPORT, MEMORY_EXPORT};
 
-use crate::ty::WasmSlice;
+use crate::ty::{WasmAllocated, WasmSlice};
 
 const MEM_SEGMENT_SIZE: usize = 64 * 1024;
 
@@ -52,9 +52,10 @@ impl WasmAlloc {
     /// Safety, the returned array is uninitialized
     #[allow(clippy::mut_from_ref)]
     pub unsafe fn as_mut(&self, wasm_slice: WasmSlice) -> &mut [u8] {
-        debug!("data ptr: {}", wasm_slice.ptr);
+        debug!("data ptr: {}", wasm_slice.ptr());
 
-        &mut self.memory.data_unchecked_mut()[wasm_slice.ptr as usize..][..wasm_slice.len as usize]
+        &mut self.memory.data_unchecked_mut()[wasm_slice.ptr() as usize..]
+            [..wasm_slice.len() as usize]
     }
 
     /// Allocates size bytes in the Wasm Memory context, returns the offset into the Memory region
@@ -69,7 +70,7 @@ impl WasmAlloc {
 
         debug!("Allocated offset {} len {}", ptr, len);
 
-        let wasm_slice = WasmSlice { ptr, len };
+        let wasm_slice = WasmSlice::new(ptr, len);
         Ok(WasmSliceWrapper::new(self, wasm_slice))
     }
 
@@ -101,7 +102,8 @@ impl WasmAlloc {
 
     /// Deallocate the WasmSlice
     pub fn dealloc_bytes(&self, slice: WasmSlice) -> Result<(), Error> {
-        let WasmSlice { ptr, len } = slice;
+        let ptr = slice.ptr();
+        let len = slice.len();
         self.dealloc
             .call(&[Val::I32(ptr), Val::I32(len)])
             .with_context(|| anyhow!("failed to deallocate bytes"))?;
@@ -121,7 +123,7 @@ impl WasmAlloc {
         debug!(
             "stored {} at {:x?}",
             std::any::type_name::<T>(),
-            wasm_slice.wasm_slice().ptr
+            wasm_slice.wasm_slice().ptr()
         );
         Ok(wasm_slice)
     }
@@ -136,10 +138,10 @@ impl WasmAlloc {
     }
 
     #[allow(unused)]
-    pub fn dealloc<T: Sized>(&self, ptr: i32) -> Result<(), Error> {
+    pub unsafe fn dealloc<T: Sized>(&self, ptr: i32) -> Result<(), Error> {
         debug_assert!(ptr > 0);
         let len = mem::size_of::<T>() as i32;
-        let wasm_slice = WasmSlice { ptr, len };
+        let wasm_slice = WasmSlice::new(ptr, len);
 
         self.dealloc_bytes(wasm_slice)
     }
@@ -167,7 +169,7 @@ impl<'w> WasmSliceWrapper<'w> {
 
     #[allow(clippy::mut_from_ref)]
     pub unsafe fn obj_as_mut<T: Sized>(&self) -> &mut T {
-        self.wasm_alloc.obj_as_mut(self.wasm_slice.ptr)
+        self.wasm_alloc.obj_as_mut(self.wasm_slice.ptr())
     }
 
     /// Copy out the WasmSlice, careful, the lifetime of this is really tied to the memory lifetime backing the WasmAlloc
