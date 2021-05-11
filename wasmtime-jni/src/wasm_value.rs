@@ -9,6 +9,7 @@ use jni::sys::jbyteArray;
 use jni::JNIEnv;
 use log::debug;
 use wasmtime::{Val, ValType};
+use wasmtime_jni_exports::WasmAllocated;
 
 use crate::ty::{Abi, ReturnAbi, WasmAlloc, WasmSlice, WasmSliceWrapper};
 
@@ -318,7 +319,7 @@ impl IntoJavaObject for IntoByteBuffer {
         debug!(
             "length of bytes for ByteBuffer: {} expected len: {}",
             bytes.len(),
-            self.0.len
+            self.0.len()
         );
         debug!("read bytes from wasm_slice: {:x?}", bytes);
 
@@ -344,7 +345,7 @@ impl IntoJavaObject for IntoByteArray {
         debug!(
             "length of bytes for ByteBuffer: {} expected len: {}",
             bytes.len(),
-            self.0.len
+            self.0.len()
         );
         debug!("read bytes from wasm_slice: {:x?}", bytes);
 
@@ -370,7 +371,7 @@ impl IntoJavaObject for IntoString {
         debug!(
             "length of bytes for ByteBuffer: {} expected len: {}",
             bytes.len(),
-            self.0.len
+            self.0.len()
         );
         debug!("read bytes from wasm_slice: {:x?}", bytes);
 
