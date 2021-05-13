@@ -257,6 +257,8 @@ impl<'j> WasmVal<'j> {
 
                 let jstr = env.get_string(string)?;
                 let cow = Cow::from(&jstr);
+                debug!("String from Java going to WASM: {}", cow);
+
                 let cow_bytes = cow.as_bytes();
 
                 // the module might not have the memory exported

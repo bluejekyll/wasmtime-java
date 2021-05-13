@@ -4,6 +4,7 @@ use jni::objects::{JClass, JString};
 use jni::sys::jlong;
 use jni::JNIEnv;
 use wasmtime::{Func, Linker, Module};
+use wasmtime_wasi::sync::WasiCtxBuilder;
 use wasmtime_wasi::Wasi;
 
 use crate::opaque_ptr::OpaquePtr;
@@ -70,8 +71,12 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_instantiateNtv<'j
 ) -> jlong {
     wasm_exception::attempt(&env, |_env| {
         let store = linker.store();
-        let wasi_ctx = wasi_cap_std_sync::WasiCtxBuilder::new()
+
+        // TODO: Security considerations here, we don't want to capture the parent processes env
+        //  we probably also want custom filehandles for the stdio of the module as well...
+        let wasi_ctx = WasiCtxBuilder::new()
             .inherit_env()?
+            .inherit_stdio()
             .build()?;
 
         let wasi = Wasi::new(&store, wasi_ctx);
