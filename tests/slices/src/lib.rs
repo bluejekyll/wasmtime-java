@@ -1,4 +1,4 @@
-use wasmtime_jni_exports::{Owned, WasmSlice};
+use wasmtime_jni_exports::{Borrowed, Owned, WasmAllocated, WasmSlice};
 
 // needed for exports to wasmtime-jni
 pub use wasmtime_jni_exports;
@@ -12,10 +12,9 @@ extern "C" {
 
 #[no_mangle]
 pub extern "C" fn say_hello_to_java() {
-    let hello = "Hello Java!";
+    let hello: Borrowed<WasmSlice> = "Hello Java!".into();
 
-    let bytes = hello.as_bytes();
-    unsafe { hello_to_java(bytes.as_ptr() as i32, bytes.len() as i32) }
+    unsafe { hello_to_java(hello.ptr(), hello.len()) }
 }
 
 /// # Safety
@@ -23,7 +22,7 @@ pub extern "C" fn say_hello_to_java() {
 /// This relies on an external method having properly allocated the WasmSlice before calling this method.
 #[no_mangle]
 pub unsafe extern "C" fn print_bytes(slice_ptr: i32, slice_len: i32) {
-    let slice = WasmSlice::borrowed(&slice_ptr, slice_len);
+    let slice = WasmSlice::borrowed(slice_ptr, &slice_len);
     println!(
         "slices::print_bytes: ptr: {:x?} len: {}",
         slice_ptr, slice_len
@@ -42,7 +41,7 @@ pub unsafe extern "C" fn reverse_bytes(
     slice_len: i32,
     slice_ref: &mut Owned<WasmSlice>,
 ) {
-    let slice = WasmSlice::borrowed(&slice_ptr, slice_len);
+    let slice = WasmSlice::borrowed(slice_ptr, &slice_len);
     println!(
         "slices::reverse_bytes: ptr: {:x?} len: {}",
         slice_ptr, slice_len
@@ -60,7 +59,7 @@ pub unsafe extern "C" fn reverse_bytes(
     let reversed = Owned::<WasmSlice>::from(reversed);
 
     // assign the return value
-    *slice_ref = reversed;
+    slice_ref.replace(reversed);
 }
 
 /// # Safety
@@ -71,7 +70,7 @@ pub unsafe extern "C" fn reverse_bytes_in_java(
     data_len: i32,
     result: &mut Owned<WasmSlice>,
 ) {
-    let data = WasmSlice::borrowed(&data_ptr, data_len);
+    let data = WasmSlice::borrowed(data_ptr, &data_len);
     println!("slices::reverse_bytes_in_java: {:?}", *data);
     reverse_bytes_java(data_ptr, data_len, result);
 }

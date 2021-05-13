@@ -280,6 +280,8 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
                         .get_string(string)
                         .context("failed to get Java String")?;
                     let cow = Cow::from(&jstr);
+                    debug!("String from Java for pass_by_ref: {}", cow);
+
                     let cow_bytes = cow.as_bytes();
 
                     // get mutable reference to the return by ref pointer and then store

@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::mem;
 use std::ops::Deref;
 
@@ -140,7 +141,7 @@ impl WasmAlloc {
     #[allow(unused)]
     pub unsafe fn dealloc<T: Sized>(&self, ptr: i32) -> Result<(), Error> {
         debug_assert!(ptr > 0);
-        let len = mem::size_of::<T>() as i32;
+        let len = i32::try_from(mem::size_of::<T>())?;
         let wasm_slice = WasmSlice::new(ptr, len);
 
         self.dealloc_bytes(wasm_slice)

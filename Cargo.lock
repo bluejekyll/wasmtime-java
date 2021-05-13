@@ -1519,7 +1519,6 @@ dependencies = [
  "flexi_logger",
  "jni",
  "log",
- "wasi-cap-std-sync",
  "wasi-common",
  "wasmtime",
  "wasmtime-jni-exports",
