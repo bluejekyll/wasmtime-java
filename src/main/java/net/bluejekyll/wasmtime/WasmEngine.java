@@ -8,10 +8,11 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.CopyOption;
 
 // TODO implement cloneable and clone the underlying engine between threads
 @NotThreadSafe
-public class WasmEngine extends AbstractOpaquePtr {
+public class WasmEngine extends AbstractOpaquePtr implements Cloneable {
     WasmEngine(long ptr) {
         super(ptr, WasmEngine::freeEngine);
     }
@@ -30,7 +31,6 @@ public class WasmEngine extends AbstractOpaquePtr {
         if (!wasm_bytes.isDirect())
             throw new WasmtimeException("passed in buffer must be direct");
 
-        System.out.println("sending bytes: " + wasm_bytes.capacity());
         return new WasmModule(newModuleNtv(super.getPtr(), wasm_bytes.asReadOnlyBuffer()));
     }
 
@@ -45,5 +45,12 @@ public class WasmEngine extends AbstractOpaquePtr {
         try (InputStream in = new FileInputStream(wasm_file)) {
             return this.newModule(in.readAllBytes());
         }
+    }
+
+    /** Need to support clone for safe copies being used across threads */
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        // TODO Auto-generated method stub
+        return super.clone();
     }
 }

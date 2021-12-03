@@ -1,5 +1,6 @@
 [profile.release]
 debug = true
+#lto = true
 
 [workspace]
 members = ["wasmtime-jni", "wasmtime-jni-exports", "tests/math", "tests/slices", "tests/strings"]

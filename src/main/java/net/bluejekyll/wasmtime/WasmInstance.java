@@ -8,6 +8,7 @@ public class WasmInstance extends AbstractOpaquePtr {
     }
 
     private static native void freeInstance(long ptr);
+
     private static native long getFunctionNtv(long ptr, String name);
 
     public Optional<WasmFunction> getFunction(String name) {

@@ -12,6 +12,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface WasmModule {
-    /** Name in the Webassembly ABI */
+    /**
+     * Name in the Webassembly ABI.
+     * 
+     * This is unnecessary, and ignored, for import proxies.
+     */
     public String name() default "";
 }

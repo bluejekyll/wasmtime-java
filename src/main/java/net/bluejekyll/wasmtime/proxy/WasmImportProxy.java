@@ -86,4 +86,11 @@ public class WasmImportProxy {
         return (T) Proxy.newProxyInstance(proxyClass.getClassLoader(), new Class<?>[] { proxyClass },
                 invocationHandler);
     }
+
+    public static <T extends WasmImportable> T proxyWasm(WasmInstance instance, Class<T> proxyClass)
+            throws IllegalArgumentException, WasmtimeException {
+        WasmImportProxy proxy = new WasmImportProxy(instance);
+
+        return proxy.newWasmProxy(proxyClass);
+    }
 }

@@ -1,6 +1,6 @@
 package net.bluejekyll.wasmtime.proxy;
 
-@WasmModule(name = "test")
+@WasmModule
 public interface TestImportProxy extends WasmImportable {
     @WasmImport(name = "add_i32")
     int addInteger(int a, int b);
