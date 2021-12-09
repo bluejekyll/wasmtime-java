@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 
 /**
  * Wasmtime
@@ -52,9 +51,10 @@ public class Wasmtime {
 
         // FIXME: add back...
         // if (libFile.exists()) {
-        //     System.out.printf("Temporary library already exists %s, did not replace%n", libFile);
-        //     loadLibrary(path);
-        //     return;
+        // System.out.printf("Temporary library already exists %s, did not replace%n",
+        // libFile);
+        // loadLibrary(path);
+        // return;
         // }
 
         try (OutputStream os = new FileOutputStream(libFile, false);

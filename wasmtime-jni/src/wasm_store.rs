@@ -1,9 +1,9 @@
 use jni::objects::JClass;
-use jni::sys::jlong;
 use jni::JNIEnv;
-use wasmtime::{Linker, Store};
+use wasmtime::Store;
 
 use crate::opaque_ptr::OpaquePtr;
+use crate::wasm_state::JavaState;
 
 // TODO: consider requiring a background thread per store?
 
@@ -18,26 +18,7 @@ use crate::opaque_ptr::OpaquePtr;
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmStore_freeStore<'j>(
     _env: JNIEnv<'j>,
     _class: JClass<'j>,
-    store: OpaquePtr<'j, Store>,
+    store: OpaquePtr<'j, Store<JavaState>>,
 ) {
     drop(store.take());
-}
-
-/// /*
-///  * Class:     net_bluejekyll_wasmtime_WasmStore
-///  * Method:    newLinker
-///  * Signature: (J)J
-///  */
-///  JNIEXPORT jlong JNICALL Java_net_bluejekyll_wasmtime_WasmStore_newLinkerNtv
-///  (JNIEnv *, jclass, jlong);
-#[no_mangle]
-pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmStore_newLinkerNtv<'j>(
-    _env: JNIEnv<'j>,
-    _class: JClass<'j>,
-    store: OpaquePtr<'j, Store>,
-) -> jlong {
-    let mut linker = Linker::new(&store);
-    linker.allow_shadowing(false);
-
-    OpaquePtr::from(linker).make_opaque()
 }

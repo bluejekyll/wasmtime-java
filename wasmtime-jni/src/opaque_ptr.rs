@@ -1,9 +1,20 @@
 use std::any;
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use jni::sys::jlong;
 use log::{debug, trace};
+
+/// List of Opaque types that we support for passing to and from Java
+pub(crate) trait Opaqueable {}
+
+impl Opaqueable for wasmtime::Engine {}
+impl Opaqueable for wasmtime::Func {}
+impl Opaqueable for wasmtime::Instance {}
+impl<T> Opaqueable for wasmtime::Linker<T> {}
+impl Opaqueable for wasmtime::Module {}
+impl<T> Opaqueable for wasmtime::Store<T> {}
 
 // TODO: add methods to extract from a passed in Object to have better ownership semantics in Java.
 /// This borrows the pointer stored at jlong, not taking ownership
@@ -16,6 +27,19 @@ pub struct OpaquePtr<'a, T> {
 }
 
 impl<'a, T> OpaquePtr<'a, T> {
+    pub(crate) fn from(val: T) -> Self
+    where
+        T: Sized + Opaqueable,
+    {
+        let ptr: jlong = Box::into_raw(Box::new(val)) as jlong;
+        debug!("opaque_ptr({}) from {}", ptr, any::type_name::<T>());
+
+        Self {
+            ptr,
+            ty: PhantomData,
+        }
+    }
+
     #[track_caller]
     pub fn as_ref(&self) -> &'a T {
         trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
@@ -83,22 +107,14 @@ impl<'a, T> Deref for OpaquePtr<'a, T> {
 }
 
 impl<'a, T> DerefMut for OpaquePtr<'a, T> {
+    #[track_caller]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut()
     }
 }
 
-impl<T> From<T> for OpaquePtr<'static, T>
-where
-    T: Sized,
-{
-    fn from(val: T) -> Self {
-        let ptr: jlong = Box::into_raw(Box::new(val)) as jlong;
-        debug!("opaque_ptr({}) from {}", ptr, any::type_name::<T>());
-
-        Self {
-            ptr,
-            ty: PhantomData,
-        }
+impl<'a, T> fmt::Debug for OpaquePtr<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "OpaquePtr<{}>({})", std::any::type_name::<T>(), self.ptr)
     }
 }

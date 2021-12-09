@@ -3,7 +3,6 @@ package net.bluejekyll.wasmtime.proxy;
 import static org.junit.Assert.assertEquals;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 
 @WasmModule(name = "test")
 public class TestExport implements WasmExportable {

@@ -17,7 +17,8 @@ public class WasmFunction extends AbstractOpaquePtr {
     private static native long createFunc(long store_ptr, Method method, Object obj, Class<?> returnType,
             List<Class<?>> paramTypes) throws WasmtimeException;
 
-    private static native Object callNtv(long func_ptr, long instance_pointer, Class<?> returnType, Object... args)
+    private static native Object callNtv(long func_ptr, long instance_pointer, long store_ptr, Class<?> returnType,
+            Object... args)
             throws WasmtimeException;
 
     public static WasmFunction newFunc(WasmStore store, Object target, String methodName, Class<?>... args)
@@ -56,8 +57,9 @@ public class WasmFunction extends AbstractOpaquePtr {
      *                           function
      */
     @SuppressWarnings("unchecked")
-    public <T> T call(WasmInstance instance, Class<T> returnType, Object... args) throws WasmtimeException {
-        return (T) callNtv(this.getPtr(), instance.getPtr(), returnType, args);
+    public <T> T call(WasmInstance instance, WasmStore store, Class<T> returnType, Object... args)
+            throws WasmtimeException {
+        return (T) callNtv(this.getPtr(), instance.getPtr(), store.getPtr(), returnType, args);
     }
 
     /**
@@ -70,8 +72,8 @@ public class WasmFunction extends AbstractOpaquePtr {
      *                           function
      */
     @SuppressWarnings("unchecked")
-    public void call(WasmInstance instance, Object... args) throws WasmtimeException {
-        callNtv(this.getPtr(), instance.getPtr(), Void.class, args);
+    public void call(WasmInstance instance, WasmStore store, Object... args) throws WasmtimeException {
+        callNtv(this.getPtr(), instance.getPtr(), store.getPtr(), Void.class, args);
     }
 
     /**
@@ -80,8 +82,8 @@ public class WasmFunction extends AbstractOpaquePtr {
      * ByteBuffers.
      */
     @SuppressWarnings("unchecked")
-    <T> T call_for_tests(Class<T> returnType, Object... args) throws WasmtimeException {
-        return (T) callNtv(this.getPtr(), 0, returnType, args);
+    <T> T call_for_tests(WasmStore store, Class<T> returnType, Object... args) throws WasmtimeException {
+        return (T) callNtv(this.getPtr(), store.getPtr(), 0, returnType, args);
     }
 
     /**
@@ -89,7 +91,7 @@ public class WasmFunction extends AbstractOpaquePtr {
      * native call, which is bad for any non-native types, like Strings arrays or
      * ByteBuffers.
      */
-    void call_for_tests(Object... args) throws WasmtimeException {
-        callNtv(this.getPtr(), 0, Void.class, args);
+    void call_for_tests(WasmStore store, Object... args) throws WasmtimeException {
+        callNtv(this.getPtr(), store.getPtr(), 0, Void.class, args);
     }
 }

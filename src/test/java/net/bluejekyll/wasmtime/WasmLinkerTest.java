@@ -20,7 +20,7 @@ public class WasmLinkerTest {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker();) {
+                WasmLinker linker = engine.newLinker();) {
 
             // define the Java hello world function
             Method method = this.getClass().getMethod("helloWorld");
@@ -31,14 +31,14 @@ public class WasmLinkerTest {
 
             // compile the calling module and then link it
             WasmModule module = engine.newModule(call_hello_world.getBytes());
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> function = instance.getFunction("hello");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> function = instance.getFunction(store, "hello");
 
             assertTrue(function.isPresent());
 
             function.ifPresent(f -> {
                 try {
-                    f.call(instance);
+                    f.call(instance, store);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

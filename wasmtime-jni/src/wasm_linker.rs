@@ -3,12 +3,11 @@ use std::borrow::Cow;
 use jni::objects::{JClass, JString};
 use jni::sys::jlong;
 use jni::JNIEnv;
-use wasmtime::{Func, Linker, Module};
-use wasmtime_wasi::sync::WasiCtxBuilder;
-use wasmtime_wasi::Wasi;
+use wasmtime::{Func, Linker, Module, Store};
 
 use crate::opaque_ptr::OpaquePtr;
 use crate::wasm_exception;
+use crate::wasm_state::JavaState;
 
 /// /*
 /// * Class:     net_bluejekyll_wasmtime_WasmLinker
@@ -21,7 +20,7 @@ use crate::wasm_exception;
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_freeLinker<'j>(
     _env: JNIEnv<'j>,
     _class: JClass<'j>,
-    ptr: OpaquePtr<'j, Linker>,
+    ptr: OpaquePtr<'j, Linker<JavaState>>,
 ) {
     drop(ptr.take());
 }
@@ -37,7 +36,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_freeLinker<'j>(
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_defineFunc<'j>(
     env: JNIEnv<'j>,
     _class: JClass<'j>,
-    mut linker: OpaquePtr<'j, Linker>,
+    mut linker: OpaquePtr<'j, Linker<JavaState>>,
     module: JString<'j>,
     name: JString<'j>,
     func: OpaquePtr<'j, Func>,
@@ -58,31 +57,26 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_defineFunc<'j>(
 /// /*
 /// * Class:     net_bluejekyll_wasmtime_WasmLinker
 /// * Method:    instantiateNtv
-/// * Signature: (JJ)J
+/// * Signature: (JJJ)J
 /// */
 /// JNIEXPORT jlong JNICALL Java_net_bluejekyll_wasmtime_WasmLinker_instantiateNtv
-///  (JNIEnv *, jclass, jlong, jlong);
+///  (JNIEnv *, jclass, jlong, jlong, jlong);
 #[no_mangle]
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_instantiateNtv<'j>(
     env: JNIEnv<'j>,
     _class: JClass<'j>,
-    mut linker: OpaquePtr<'j, Linker>,
+    linker: OpaquePtr<'j, Linker<JavaState>>,
+    mut store: OpaquePtr<'j, Store<JavaState>>,
     module: OpaquePtr<'j, Module>,
 ) -> jlong {
     wasm_exception::attempt(&env, |_env| {
-        let store = linker.store();
+        // // TODO: Security considerations here, we don't want to capture the parent processes env
+        // //  we probably also want custom filehandles for the stdio of the module as well...
+        // let wasi_ctx = WasiCtxBuilder::new().inherit_env()?.inherit_stdio().build();
 
-        // TODO: Security considerations here, we don't want to capture the parent processes env
-        //  we probably also want custom filehandles for the stdio of the module as well...
-        let wasi_ctx = WasiCtxBuilder::new()
-            .inherit_env()?
-            .inherit_stdio()
-            .build()?;
+        // sync::add_to_linker(&mut linker, wasi_ctx)?;
 
-        let wasi = Wasi::new(&store, wasi_ctx);
-        wasi.add_to_linker(&mut linker)?;
-
-        let instance = linker.instantiate(&module)?;
+        let instance = linker.instantiate(&mut *store, &module)?;
         Ok(OpaquePtr::from(instance).make_opaque())
     })
 }

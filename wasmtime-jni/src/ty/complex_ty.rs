@@ -1,12 +1,15 @@
 use anyhow::{anyhow, ensure, Error};
 use wasmtime::{Store, Val, ValType};
 
-use crate::ty::{WasmAlloc, WasmSliceWrapper};
+use crate::{
+    ty::{WasmAlloc, WasmSliceWrapper},
+    wasm_state::JavaState,
+};
 
 pub(crate) trait ComplexTy {
     type Abi: Abi;
 
-    fn compatible_with_store(&self, _store: &Store) -> bool;
+    fn compatible_with_store(&self, _store: &Store<JavaState>) -> bool;
 }
 
 pub(crate) trait Abi: Copy {
@@ -41,6 +44,7 @@ pub(crate) trait ReturnAbi: Abi {
     fn return_or_store_to_arg<'w>(
         args: &mut Vec<Val>,
         wasm_alloc: Option<&'w WasmAlloc>,
+        store: &mut Store<JavaState>,
     ) -> Result<Option<WasmSliceWrapper<'w>>, Error>;
 
     /// Load from the argument list
@@ -48,6 +52,7 @@ pub(crate) trait ReturnAbi: Abi {
         ret: Option<&Val>,
         ret_by_ref_ptr: Option<WasmSliceWrapper<'_>>,
         wasm_alloc: Option<&WasmAlloc>,
+        store: &mut Store<JavaState>,
     ) -> Result<Self, anyhow::Error>;
 }
 
@@ -63,6 +68,7 @@ impl<T: Abi + IntoValType + FromVal + MatchesValType> ReturnAbi for T {
     fn return_or_store_to_arg<'w>(
         args: &mut Vec<Val>,
         wasm_alloc: Option<&'w WasmAlloc>,
+        store: &mut Store<JavaState>,
     ) -> Result<Option<WasmSliceWrapper<'w>>, Error> {
         Ok(None)
     }
@@ -76,6 +82,7 @@ impl<T: Abi + IntoValType + FromVal + MatchesValType> ReturnAbi for T {
         mut ret: Option<&Val>,
         _ret_by_ref_ptr: Option<WasmSliceWrapper<'_>>,
         _wasm_alloc: Option<&WasmAlloc>,
+        _store: &mut Store<JavaState>,
     ) -> Result<Self, anyhow::Error> {
         ret.take()
             .cloned()
@@ -197,7 +204,7 @@ macro_rules! direct_complex_ty {
         impl ComplexTy for $t {
             type Abi = Self;
 
-            fn compatible_with_store(&self, _store: &Store) -> bool {
+            fn compatible_with_store(&self, _store: &Store<JavaState>) -> bool {
                 true
             }
         }

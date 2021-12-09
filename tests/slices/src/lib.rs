@@ -75,13 +75,13 @@ pub unsafe extern "C" fn reverse_bytes_in_java(
     reverse_bytes_java(data_ptr, data_len, result);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn test_print_bytes() {
-        let bytes = &[0u8, 1, 2] as &[u8];
-        unsafe { print_bytes(bytes.as_ptr() as i32, bytes.len() as i32) };
-    }
-}
+//     #[test]
+//     fn test_print_bytes() {
+//         let bytes = &[0u8, 1, 2] as &[u8];
+//         unsafe { print_bytes(bytes.as_ptr() as i32, bytes.len() as i32) };
+//     }
+// }

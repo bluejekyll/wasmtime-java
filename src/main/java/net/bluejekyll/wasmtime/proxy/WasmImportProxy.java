@@ -8,23 +8,27 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import net.bluejekyll.wasmtime.WasmFunction;
 import net.bluejekyll.wasmtime.WasmInstance;
+import net.bluejekyll.wasmtime.WasmStore;
 import net.bluejekyll.wasmtime.WasmtimeException;
 
+@NotThreadSafe
 public class WasmImportProxy {
-    private final WasmInstance instance;
-
-    public WasmImportProxy(WasmInstance instance) {
-        this.instance = instance;
+    private WasmImportProxy() {
     }
 
+    @NotThreadSafe
     private static class WasmInvocationHandler implements InvocationHandler {
         final WasmInstance instance;
+        final WasmStore store;
         final Map<String, WasmFunction> functions;
 
-        WasmInvocationHandler(WasmInstance instance, Map<String, WasmFunction> functions) {
+        WasmInvocationHandler(WasmInstance instance, WasmStore store, Map<String, WasmFunction> functions) {
             this.instance = instance;
+            this.store = store;
             this.functions = functions;
         }
 
@@ -33,7 +37,7 @@ public class WasmImportProxy {
             WasmFunction function = functions.get(method.getName());
 
             if (function != null) {
-                return function.call(this.instance, method.getReturnType(), args);
+                return function.call(this.instance, this.store, method.getReturnType(), args);
             }
 
             // TODO: add this back with Java 1.16
@@ -46,7 +50,7 @@ public class WasmImportProxy {
 
     }
 
-    public <T extends WasmImportable> T newWasmProxy(Class<T> proxyClass)
+    public static <T extends WasmImportable> T proxyWasm(WasmInstance instance, WasmStore store, Class<T> proxyClass)
             throws IllegalArgumentException, WasmtimeException {
         final Method[] methods = proxyClass.getMethods();
 
@@ -65,7 +69,7 @@ public class WasmImportProxy {
                 functionName = methodName;
             }
 
-            Optional<WasmFunction> func = this.instance.getFunction(functionName);
+            Optional<WasmFunction> func = instance.getFunction(store, functionName);
 
             if (!func.isPresent()) {
                 throw new WasmtimeException(String.format("Function not present in WASM Module: %s", functionName));
@@ -82,15 +86,8 @@ public class WasmImportProxy {
             functions.put(methodName, func.get());
         }
 
-        WasmInvocationHandler invocationHandler = new WasmInvocationHandler(this.instance, functions);
+        WasmInvocationHandler invocationHandler = new WasmInvocationHandler(instance, store, functions);
         return (T) Proxy.newProxyInstance(proxyClass.getClassLoader(), new Class<?>[] { proxyClass },
                 invocationHandler);
-    }
-
-    public static <T extends WasmImportable> T proxyWasm(WasmInstance instance, Class<T> proxyClass)
-            throws IllegalArgumentException, WasmtimeException {
-        WasmImportProxy proxy = new WasmImportProxy(instance);
-
-        return proxy.newWasmProxy(proxyClass);
     }
 }

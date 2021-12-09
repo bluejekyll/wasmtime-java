@@ -19,17 +19,17 @@ public class MathTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.MATH_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("add_i32");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "add_i32");
 
             assertTrue("add_i32 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            int ret = function.call(instance, Integer.TYPE, 3, 2);
+            int ret = function.call(instance, store, Integer.TYPE, 3, 2);
             assertEquals(ret, 5);
         }
     }
@@ -40,17 +40,17 @@ public class MathTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.MATH_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("add_u32");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "add_u32");
 
             assertTrue("add_u32 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            int ret = function.call(instance, Integer.TYPE, 3, 2);
+            int ret = function.call(instance, store, Integer.TYPE, 3, 2);
             assertEquals(ret, 5);
         }
     }
@@ -61,17 +61,17 @@ public class MathTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.MATH_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("add_i64");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "add_i64");
 
             assertTrue("add_i64 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            long ret = function.call(instance, Long.TYPE, (long)3, (long)2);
+            long ret = function.call(instance, store, Long.TYPE, (long) 3, (long) 2);
             assertEquals(ret, 5);
         }
     }
@@ -82,17 +82,17 @@ public class MathTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.MATH_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("add_u64");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "add_u64");
 
             assertTrue("add_u64 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            long ret = function.call(instance, Long.TYPE, (long)3, (long)2);
+            long ret = function.call(instance, store, Long.TYPE, (long) 3, (long) 2);
             assertEquals(ret, 5);
         }
     }
@@ -103,18 +103,18 @@ public class MathTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.MATH_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("add_f32");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "add_f32");
 
             assertTrue("add_f32 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            float ret = function.call(instance, Float.TYPE, (float)1.1, (float)2.2);
-            assertEquals(ret, (float)3.3, 0.1);
+            float ret = function.call(instance, store, Float.TYPE, (float) 1.1, (float) 2.2);
+            assertEquals(ret, (float) 3.3, 0.1);
         }
     }
 
@@ -124,18 +124,18 @@ public class MathTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.MATH_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("add_f64");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "add_f64");
 
             assertTrue("add_f64 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            double ret = function.call(instance, Double.TYPE, (double)1.1, (double)2.2);
-            assertEquals(ret, (double)3.3, 0.1);
+            double ret = function.call(instance, store, Double.TYPE, (double) 1.1, (double) 2.2);
+            assertEquals(ret, (double) 3.3, 0.1);
         }
     }
 }

@@ -14,7 +14,8 @@ public class WasmLinker extends AbstractOpaquePtr {
 
     private static native void defineFunc(long ptr, String module, String name, long func_ptr);
 
-    private static native long instantiateNtv(long linker_ptr, long module_ptr) throws WasmtimeException;
+    private static native long instantiateNtv(long linker_ptr, long store_ptr, long module_ptr)
+            throws WasmtimeException;
 
     /**
      * @param module name of the module in which this function should be defined
@@ -33,7 +34,7 @@ public class WasmLinker extends AbstractOpaquePtr {
         }
     }
 
-    public WasmInstance instantiate(WasmModule module) throws WasmtimeException {
-        return new WasmInstance(WasmLinker.instantiateNtv(this.getPtr(), module.getPtr()));
+    public WasmInstance instantiate(WasmStore store, WasmModule module) throws WasmtimeException {
+        return new WasmInstance(WasmLinker.instantiateNtv(this.getPtr(), store.getPtr(), module.getPtr()));
     }
 }

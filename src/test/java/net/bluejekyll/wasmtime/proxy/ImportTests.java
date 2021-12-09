@@ -24,7 +24,6 @@ public class ImportTests {
     private WasmModule module;
     private WasmStore store;
     private WasmLinker linker;
-    private WasmImportProxy importProxy;
 
     @Before
     public void setup() throws WasmtimeException, IOException {
@@ -35,7 +34,7 @@ public class ImportTests {
         assertNotNull(this.module);
 
         this.store = engine.newStore();
-        this.linker = store.newLinker();
+        this.linker = engine.newLinker();
     }
 
     @After
@@ -48,9 +47,8 @@ public class ImportTests {
 
     @Test
     public void testAddIntegers() throws Exception {
-        WasmInstance instance = linker.instantiate(this.module);
-        WasmImportProxy importProxy = new WasmImportProxy(instance);
-        TestImportProxy proxy = importProxy.newWasmProxy(TestImportProxy.class);
+        WasmInstance instance = linker.instantiate(store, module);
+        TestImportProxy proxy = WasmImportProxy.proxyWasm(instance, store, TestImportProxy.class);
 
         int ret = proxy.addInteger(3, 2);
         assertEquals(ret, 5);
@@ -58,9 +56,8 @@ public class ImportTests {
 
     @Test
     public void testAddFloats() throws Exception {
-        WasmInstance instance = linker.instantiate(module);
-        WasmImportProxy importProxy = new WasmImportProxy(instance);
-        TestImportProxy proxy = importProxy.newWasmProxy(TestImportProxy.class);
+        WasmInstance instance = linker.instantiate(store, module);
+        TestImportProxy proxy = WasmImportProxy.proxyWasm(instance, store, TestImportProxy.class);
 
         float ret = proxy.addFloats((float) 1.1, (float) 2.2);
         assertEquals(ret, (float) 3.3, 0.1);

@@ -8,10 +8,11 @@ use jni::objects::{JClass, JObject, JString, JValue, ReleaseMode};
 use jni::sys::jbyteArray;
 use jni::JNIEnv;
 use log::debug;
-use wasmtime::{Val, ValType};
+use wasmtime::{AsContextMut, Store, Val, ValType};
 use wasmtime_jni_exports::WasmAllocated;
 
 use crate::ty::{Abi, ReturnAbi, WasmAlloc, WasmSlice, WasmSliceWrapper};
+use crate::wasm_state::JavaState;
 
 const CLASS: &str = "Ljava/lang/Class;";
 const LONG: &str = "java/lang/Long";
@@ -96,25 +97,34 @@ impl WasmTy {
         env: &JNIEnv<'j>,
         args: impl Iterator<Item = Val>,
         wasm_alloc: Option<&WasmAlloc>,
+        store: impl AsContextMut,
     ) -> Result<JObject<'j>, anyhow::Error> {
         match self {
             WasmTy::ByteBuffer => {
                 // we do not want to deallocate here...
                 let wasm_slice = WasmSlice::load_from_args(args)?;
-                IntoByteBuffer(wasm_slice).into_java(env, wasm_alloc)
+                IntoByteBuffer(wasm_slice).into_java(env, wasm_alloc, store)
             }
             WasmTy::ByteArray => {
                 let wasm_slice = WasmSlice::load_from_args(args)?;
-                IntoByteArray(wasm_slice).into_java(env, wasm_alloc)
+                IntoByteArray(wasm_slice).into_java(env, wasm_alloc, store)
             }
             WasmTy::String => {
                 let wasm_slice = WasmSlice::load_from_args(args)?;
-                IntoString(wasm_slice).into_java(env, wasm_alloc)
+                IntoString(wasm_slice).into_java(env, wasm_alloc, store)
             }
-            WasmTy::ValType(ValType::I32) => i32::load_from_args(args)?.into_java(env, wasm_alloc),
-            WasmTy::ValType(ValType::I64) => i64::load_from_args(args)?.into_java(env, wasm_alloc),
-            WasmTy::ValType(ValType::F32) => f32::load_from_args(args)?.into_java(env, wasm_alloc),
-            WasmTy::ValType(ValType::F64) => f64::load_from_args(args)?.into_java(env, wasm_alloc),
+            WasmTy::ValType(ValType::I32) => {
+                i32::load_from_args(args)?.into_java(env, wasm_alloc, store)
+            }
+            WasmTy::ValType(ValType::I64) => {
+                i64::load_from_args(args)?.into_java(env, wasm_alloc, store)
+            }
+            WasmTy::ValType(ValType::F32) => {
+                f32::load_from_args(args)?.into_java(env, wasm_alloc, store)
+            }
+            WasmTy::ValType(ValType::F64) => {
+                f64::load_from_args(args)?.into_java(env, wasm_alloc, store)
+            }
             WasmTy::ValType(_) => unimplemented!(),
         }
     }
@@ -156,15 +166,16 @@ impl WasmTy {
         self,
         args: &mut Vec<Val>,
         wasm_alloc: Option<&'w WasmAlloc>,
+        store: &mut Store<JavaState>,
     ) -> Result<Option<WasmSliceWrapper<'w>>, Error> {
         match self {
             WasmTy::ByteBuffer | WasmTy::ByteArray | WasmTy::String => {
-                WasmSlice::return_or_store_to_arg(args, wasm_alloc)
+                WasmSlice::return_or_store_to_arg(args, wasm_alloc, store)
             }
-            WasmTy::ValType(ValType::I32) => i32::return_or_store_to_arg(args, wasm_alloc),
-            WasmTy::ValType(ValType::I64) => i64::return_or_store_to_arg(args, wasm_alloc),
-            WasmTy::ValType(ValType::F32) => f32::return_or_store_to_arg(args, wasm_alloc),
-            WasmTy::ValType(ValType::F64) => f64::return_or_store_to_arg(args, wasm_alloc),
+            WasmTy::ValType(ValType::I32) => i32::return_or_store_to_arg(args, wasm_alloc, store),
+            WasmTy::ValType(ValType::I64) => i64::return_or_store_to_arg(args, wasm_alloc, store),
+            WasmTy::ValType(ValType::F32) => f32::return_or_store_to_arg(args, wasm_alloc, store),
+            WasmTy::ValType(ValType::F64) => f64::return_or_store_to_arg(args, wasm_alloc, store),
             WasmTy::ValType(_) => unimplemented!(),
         }
     }
@@ -220,11 +231,12 @@ impl<'j> WasmVal<'j> {
         }
     }
 
-    pub fn store_to_args<'w>(
+    pub fn store_to_args<'w, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         args: &mut Vec<Val>,
         wasm_alloc: Option<&'w WasmAlloc>,
+        mut store: S,
     ) -> Result<Option<WasmSliceWrapper<'w>>, anyhow::Error> {
         match self {
             // WasmVal::ByteBuffer(buffer) => {
@@ -247,7 +259,7 @@ impl<'j> WasmVal<'j> {
                 // the module might not have the memory exported
                 let wasm_alloc = wasm_alloc
                     .ok_or_else(|| anyhow!("no memory or allocator supplied from module"))?;
-                let wasm_slice = wasm_alloc.alloc_bytes(byte_array)?;
+                let wasm_slice = wasm_alloc.alloc_bytes(byte_array, &mut store)?;
 
                 wasm_slice.store_to_args(args);
                 return Ok(Some(wasm_slice));
@@ -264,7 +276,7 @@ impl<'j> WasmVal<'j> {
                 // the module might not have the memory exported
                 let wasm_alloc = wasm_alloc
                     .ok_or_else(|| anyhow!("no memory or allocator supplied from module"))?;
-                let wasm_slice = wasm_alloc.alloc_bytes(cow_bytes)?;
+                let wasm_slice = wasm_alloc.alloc_bytes(cow_bytes, store)?;
 
                 // release the array reference, CopyBack is following the JNI guidelines
                 wasm_slice.store_to_args(args);
@@ -300,23 +312,25 @@ impl From<Val> for WasmVal<'_> {
 }
 
 trait IntoJavaObject {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         wasm_alloc: Option<&WasmAlloc>,
+        store: S,
     ) -> Result<JObject<'j>, Error>;
 }
 
 struct IntoByteBuffer(WasmSlice);
 impl IntoJavaObject for IntoByteBuffer {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         wasm_alloc: Option<&WasmAlloc>,
+        mut store: S,
     ) -> Result<JObject<'j>, Error> {
         let wasm_alloc =
             wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc is required for this return type"))?;
-        let bytes = wasm_alloc.as_mut(self.0);
+        let bytes = wasm_alloc.as_mut(self.0, &mut store);
 
         debug!(
             "length of bytes for ByteBuffer: {} expected len: {}",
@@ -335,14 +349,15 @@ impl IntoJavaObject for IntoByteBuffer {
 
 struct IntoByteArray(WasmSlice);
 impl IntoJavaObject for IntoByteArray {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         wasm_alloc: Option<&WasmAlloc>,
+        mut store: S,
     ) -> Result<JObject<'j>, Error> {
         let wasm_alloc =
             wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc is required for this return type"))?;
-        let bytes = wasm_alloc.as_mut(self.0);
+        let bytes = wasm_alloc.as_mut(self.0, &mut store);
 
         debug!(
             "length of bytes for ByteBuffer: {} expected len: {}",
@@ -361,14 +376,15 @@ impl IntoJavaObject for IntoByteArray {
 
 struct IntoString(WasmSlice);
 impl IntoJavaObject for IntoString {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         wasm_alloc: Option<&WasmAlloc>,
+        mut store: S,
     ) -> Result<JObject<'j>, Error> {
         let wasm_alloc =
             wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc is required for this return type"))?;
-        let bytes = wasm_alloc.as_mut(self.0);
+        let bytes = wasm_alloc.as_mut(self.0, &mut store);
 
         debug!(
             "length of bytes for ByteBuffer: {} expected len: {}",
@@ -388,10 +404,11 @@ impl IntoJavaObject for IntoString {
 }
 
 impl IntoJavaObject for i64 {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         _wasm_alloc: Option<&WasmAlloc>,
+        _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Long(self);
         env.new_object(LONG, "(J)V", &[jvalue])
@@ -400,10 +417,11 @@ impl IntoJavaObject for i64 {
 }
 
 impl IntoJavaObject for i32 {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         _wasm_alloc: Option<&WasmAlloc>,
+        _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Int(self);
         env.new_object(INTEGER, "(I)V", &[jvalue])
@@ -412,10 +430,11 @@ impl IntoJavaObject for i32 {
 }
 
 impl IntoJavaObject for f64 {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         _wasm_alloc: Option<&WasmAlloc>,
+        _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Double(self);
         env.new_object(DOUBLE, "(D)V", &[jvalue])
@@ -424,10 +443,11 @@ impl IntoJavaObject for f64 {
 }
 
 impl IntoJavaObject for f32 {
-    unsafe fn into_java<'j>(
+    unsafe fn into_java<'j, S: AsContextMut>(
         self,
         env: &JNIEnv<'j>,
         _wasm_alloc: Option<&WasmAlloc>,
+        _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Float(self);
         env.new_object(FLOAT, "(F)V", &[jvalue])
@@ -567,6 +587,7 @@ pub(crate) unsafe fn return_or_load_or_from_arg<'a, 'w>(
     ret: Option<&Val>,
     ret_by_ref_ptr: Option<WasmSliceWrapper<'w>>,
     wasm_alloc: Option<&'w WasmAlloc>,
+    mut store: &mut Store<JavaState>,
 ) -> Result<JObject<'a>, anyhow::Error> {
     match ty {
         WasmTy::ByteBuffer => Err(anyhow!("ByteBuffer unsupported as return Java return type")),
@@ -582,38 +603,46 @@ pub(crate) unsafe fn return_or_load_or_from_arg<'a, 'w>(
         //     IntoByteBuffer(wasm_slice.wasm_slice()).into_java(env, wasm_alloc)
         // }
         WasmTy::ByteArray => {
-            let wasm_slice =
-                WasmSlice::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc)?;
+            let wasm_slice = WasmSlice::return_or_load_or_from_args(
+                ret,
+                ret_by_ref_ptr,
+                wasm_alloc,
+                &mut store,
+            )?;
             let wasm_slice = WasmSliceWrapper::new(
                 wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc required"))?,
                 wasm_slice,
             );
-            IntoByteArray(wasm_slice.wasm_slice()).into_java(env, wasm_alloc)
+            IntoByteArray(wasm_slice.wasm_slice()).into_java(env, wasm_alloc, store)
         }
         WasmTy::String => {
-            let wasm_slice =
-                WasmSlice::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc)?;
+            let wasm_slice = WasmSlice::return_or_load_or_from_args(
+                ret,
+                ret_by_ref_ptr,
+                wasm_alloc,
+                &mut store,
+            )?;
             let wasm_slice = WasmSliceWrapper::new(
                 wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc required"))?,
                 wasm_slice,
             );
-            IntoString(wasm_slice.wasm_slice()).into_java(env, wasm_alloc)
+            IntoString(wasm_slice.wasm_slice()).into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::I32) => {
-            i32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc)?
-                .into_java(env, wasm_alloc)
+            i32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+                .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::I64) => {
-            i64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc)?
-                .into_java(env, wasm_alloc)
+            i64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+                .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::F32) => {
-            f32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc)?
-                .into_java(env, wasm_alloc)
+            f32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+                .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::F64) => {
-            f64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc)?
-                .into_java(env, wasm_alloc)
+            f64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+                .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(v) => Err(anyhow!("{} unsupported as return Java return type", v)),
     }

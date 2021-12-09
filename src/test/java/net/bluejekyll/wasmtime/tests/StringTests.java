@@ -31,19 +31,19 @@ public class StringTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.STRINGS_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
             link(store, linker);
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("say_hello_to");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "say_hello_to");
 
             assertTrue("say_hello_to isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
             String name = this.getClass().getName();
-            String ret = function.call(instance, String.class, name);
+            String ret = function.call(instance, store, String.class, name);
             assertNotNull(ret);
 
             String expected = String.format("Hello, %s!", name);
@@ -57,20 +57,20 @@ public class StringTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.STRINGS_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
             link(store, linker);
-            WasmInstance instance = linker.instantiate(module);
+            WasmInstance instance = linker.instantiate(store, module);
 
-            Optional<WasmFunction> func = instance.getFunction("say_hello_in_java");
+            Optional<WasmFunction> func = instance.getFunction(store, "say_hello_in_java");
 
             assertTrue("say_hello_to isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
             String name = this.getClass().getName();
-            String ret = function.call(instance, String.class, name);
+            String ret = function.call(instance, store, String.class, name);
             assertNotNull(ret);
 
             String expected = String.format("Hello, %s!", name);

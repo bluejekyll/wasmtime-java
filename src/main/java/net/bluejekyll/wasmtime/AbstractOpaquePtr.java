@@ -4,6 +4,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import java.lang.ref.Cleaner;
 import java.util.function.Consumer;
 
+@NotThreadSafe
 public abstract class AbstractOpaquePtr implements AutoCloseable {
     private static final Cleaner cleaner = Cleaner.create();
 

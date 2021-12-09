@@ -2,9 +2,11 @@ use jni::objects::{JByteBuffer, JClass};
 use jni::sys::jlong;
 use jni::JNIEnv;
 use log::{debug, warn};
-use wasmtime::{Engine, Module, Store};
+use wasmtime::{Engine, Linker, Module, Store};
 
 use crate::opaque_ptr::OpaquePtr;
+use crate::wasm_exception;
+use crate::wasm_state::JavaState;
 
 /// /*
 ///  * Class:     net_bluejekyll_wasmtime_WasmEngine
@@ -31,12 +33,14 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_freeEngine<'j>(
 ///  (JNIEnv *, jclass, jlong);
 #[no_mangle]
 pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv<'j>(
-    _env: JNIEnv<'j>,
+    env: JNIEnv<'j>,
     _class: JClass<'j>,
     engine: OpaquePtr<'j, Engine>,
 ) -> jlong {
-    let store = Store::new(&engine);
-    OpaquePtr::from(store).make_opaque()
+    wasm_exception::attempt(&env, |_env| {
+        let store: Store<JavaState> = Store::new(&engine, JavaState::new(env)?);
+        Ok(OpaquePtr::from(store).make_opaque())
+    })
 }
 
 /// /*
@@ -84,4 +88,27 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newModuleNtv(
     }
 
     OpaquePtr::from(module).make_opaque()
+}
+
+/// /*
+///  * Class:     net_bluejekyll_wasmtime_WasmEngine
+///  * Method:    newLinker
+///  * Signature: (J)J
+///  */
+/// JNIEXPORT jlong JNICALL Java_net_bluejekyll_wasmtime_WasmEngine_newLinker
+///   (JNIEnv *, jclass, jlong);
+#[no_mangle]
+pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newLinker<'j>(
+    env: JNIEnv<'j>,
+    _class: JClass<'j>,
+    engine: OpaquePtr<'j, Engine>,
+) -> jlong {
+    wasm_exception::attempt(&env, |_env| {
+        let mut linker = Linker::<JavaState>::new(&engine);
+        wasmtime_wasi::add_to_linker(&mut linker, |s| s.wasi_mut())?;
+
+        linker.allow_shadowing(false);
+
+        Ok(OpaquePtr::from(linker).make_opaque())
+    })
 }

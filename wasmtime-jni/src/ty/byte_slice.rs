@@ -5,7 +5,10 @@ use log::debug;
 use wasmtime::{Store, Val, ValType};
 pub use wasmtime_jni_exports::{WasmAllocated, WasmSlice};
 
-use crate::ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc, WasmSliceWrapper};
+use crate::{
+    ty::{Abi, ComplexTy, ReturnAbi, WasmAlloc, WasmSliceWrapper},
+    wasm_state::JavaState,
+};
 
 // pub fn greet(name: &str) -> String {
 //     format!("Hello, {}!", name)
@@ -79,7 +82,7 @@ impl ComplexTy for ByteSlice {
     type Abi = WasmSlice;
 
     #[inline]
-    fn compatible_with_store(&self, _store: &Store) -> bool {
+    fn compatible_with_store(&self, _store: &Store<JavaState>) -> bool {
         true
     }
 }
@@ -149,11 +152,12 @@ impl ReturnAbi for WasmSlice {
     fn return_or_store_to_arg<'w>(
         args: &mut Vec<Val>,
         wasm_alloc: Option<&'w WasmAlloc>,
+        store: &mut Store<JavaState>,
     ) -> Result<Option<WasmSliceWrapper<'w>>, Error> {
         // create a place in memory for the slice to be returned
         let slice = wasm_alloc
             .ok_or_else(|| anyhow!("WasmAlloc not supplied"))?
-            .alloc::<Self>()?;
+            .alloc::<Self>(store)?;
 
         args.push(Val::from(slice.ptr()));
         Ok(Some(slice))
@@ -168,11 +172,12 @@ impl ReturnAbi for WasmSlice {
         _ret: Option<&Val>,
         mut ret_by_ref_ptr: Option<WasmSliceWrapper<'_>>,
         _wasm_alloc: Option<&WasmAlloc>,
+        store: &mut Store<JavaState>,
     ) -> Result<Self, anyhow::Error> {
         let ptr = ret_by_ref_ptr
             .take()
             .ok_or_else(|| anyhow!("No pointer was supplied"))?;
-        let wasm_slice = unsafe { ptr.obj_as_mut() };
+        let wasm_slice = unsafe { ptr.obj_as_mut(store) };
 
         debug!("read {:?}", wasm_slice);
         Ok(*wasm_slice)

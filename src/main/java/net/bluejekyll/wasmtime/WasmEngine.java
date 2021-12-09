@@ -4,11 +4,9 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.file.CopyOption;
 
 // TODO implement cloneable and clone the underlying engine between threads
 @NotThreadSafe
@@ -22,6 +20,9 @@ public class WasmEngine extends AbstractOpaquePtr implements Cloneable {
     private static native long newStoreNtv(long engine_ptr);
 
     private static native long newModuleNtv(long engine_ptr, ByteBuffer wasm_bytes) throws WasmtimeException;
+
+    // takes a pointer to an engine
+    private static native long newLinker(long engine_ptr) throws WasmtimeException;
 
     public WasmStore newStore() {
         return new WasmStore(WasmEngine.newStoreNtv(super.getPtr()));
@@ -45,6 +46,11 @@ public class WasmEngine extends AbstractOpaquePtr implements Cloneable {
         try (InputStream in = new FileInputStream(wasm_file)) {
             return this.newModule(in.readAllBytes());
         }
+    }
+
+    public WasmLinker newLinker() throws WasmtimeException {
+        long ptr = newLinker(this.getPtr());
+        return new WasmLinker(ptr);
     }
 
     /** Need to support clone for safe copies being used across threads */

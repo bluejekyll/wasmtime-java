@@ -54,19 +54,19 @@ public class SliceTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
             link(store, linker);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("say_hello_to_java");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "say_hello_to_java");
 
             assertTrue("say_hello_to_java isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            function.call(instance);
+            function.call(instance, store);
         }
     }
 
@@ -76,20 +76,20 @@ public class SliceTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
             link(store, linker);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("print_bytes");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "print_bytes");
 
             assertTrue("print_bytes isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
             byte[] bytes = new byte[] { 0, 1, 2, 3 };
-            function.call(instance, bytes);
+            function.call(instance, store, bytes);
         }
     }
 
@@ -99,20 +99,20 @@ public class SliceTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
             link(store, linker);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("reverse_bytes");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "reverse_bytes");
 
             assertTrue("print_bytes isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
             byte[] bytes = new byte[] { 0, 1, 2, 3 };
-            byte[] ret = function.call(instance, byte[].class, bytes);
+            byte[] ret = function.call(instance, store, byte[].class, bytes);
             assertNotNull(ret);
             assertEquals(bytes.length, ret.length);
 
@@ -126,20 +126,20 @@ public class SliceTests {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmModule module = engine.newModule(TestUtil.SLICES_PATH);
                 WasmStore store = engine.newStore();
-                WasmLinker linker = store.newLinker()) {
+                WasmLinker linker = engine.newLinker()) {
             System.out.println("slices compiled");
             assertNotNull(module);
 
             link(store, linker);
 
-            WasmInstance instance = linker.instantiate(module);
-            Optional<WasmFunction> func = instance.getFunction("reverse_bytes_in_java");
+            WasmInstance instance = linker.instantiate(store, module);
+            Optional<WasmFunction> func = instance.getFunction(store, "reverse_bytes_in_java");
 
             assertTrue("print_bytes isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
             byte[] bytes = new byte[] { 0, 1, 2, 3 };
-            byte[] ret = function.call(instance, byte[].class, bytes);
+            byte[] ret = function.call(instance, store, byte[].class, bytes);
             assertNotNull(ret);
             assertEquals(bytes.length, ret.length);
 
