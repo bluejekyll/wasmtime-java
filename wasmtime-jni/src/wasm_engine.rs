@@ -37,10 +37,12 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmEngine_newStoreNtv<'j>(
     _class: JClass<'j>,
     engine: OpaquePtr<'j, Engine>,
 ) -> jlong {
-    wasm_exception::attempt(&env, |_env| {
+    let ptr = wasm_exception::attempt(&env, |_env| {
         let store: Store<JavaState> = Store::new(&engine, JavaState::new(env)?);
         Ok(OpaquePtr::from(store).make_opaque())
-    })
+    });
+
+    ptr
 }
 
 /// /*

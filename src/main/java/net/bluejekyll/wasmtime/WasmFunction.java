@@ -83,7 +83,7 @@ public class WasmFunction extends AbstractOpaquePtr {
      */
     @SuppressWarnings("unchecked")
     <T> T call_for_tests(WasmStore store, Class<T> returnType, Object... args) throws WasmtimeException {
-        return (T) callNtv(this.getPtr(), store.getPtr(), 0, returnType, args);
+        return (T) callNtv(this.getPtr(), 0, store.getPtr(), returnType, args);
     }
 
     /**
@@ -92,6 +92,6 @@ public class WasmFunction extends AbstractOpaquePtr {
      * ByteBuffers.
      */
     void call_for_tests(WasmStore store, Object... args) throws WasmtimeException {
-        callNtv(this.getPtr(), store.getPtr(), 0, Void.class, args);
+        callNtv(this.getPtr(), 0, store.getPtr(), Void.class, args);
     }
 }

@@ -18,6 +18,11 @@ public abstract class AbstractOpaquePtr implements AutoCloseable {
     protected AbstractOpaquePtr(long ptr, Consumer<Long> free) {
         this.ptr = ptr;
         this.cleanable = cleaner.register(this, new Freedom(ptr, free));
+
+        if (this.ptr == 0) {
+            throw new NullPointerException(
+                    String.format("Null pointer for %s(%d)", this.getClass().getName(), this.ptr));
+        }
     }
 
     private static class Freedom implements Runnable {
@@ -35,6 +40,11 @@ public abstract class AbstractOpaquePtr implements AutoCloseable {
     }
 
     protected long getPtr() {
+        if (this.ptr == 0) {
+            throw new NullPointerException(
+                    String.format("Null pointer for %s(%d)", this.getClass().getName(), this.ptr));
+        }
+
         return this.ptr;
     }
 

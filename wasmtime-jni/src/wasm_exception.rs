@@ -72,11 +72,11 @@ impl<'l, 'j: 'l> fmt::Display for ReportJThrowable<'l, 'j> {
 
         let cause = cause.l().map_err(|_| fmt::Error)?;
         if !cause.is_null() {
-            let reporter = ReportJThrowable::from(&self.env, JThrowable::from(cause));
+            let reporter = ReportJThrowable::from(self.env, JThrowable::from(cause));
             write!(f, "cause: {}", reporter)?;
         }
 
-        let clazz = wasm_value::get_class_name_obj(self.env, self.throwable.clone().into())
+        let clazz = wasm_value::get_class_name_obj(self.env, self.throwable.into())
             .map_err(|_| fmt::Error)?;
 
         let message =

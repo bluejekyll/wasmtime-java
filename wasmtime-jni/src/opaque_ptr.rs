@@ -32,17 +32,20 @@ impl<'a, T> OpaquePtr<'a, T> {
         T: Sized + Opaqueable,
     {
         let ptr: jlong = Box::into_raw(Box::new(val)) as jlong;
-        debug!("opaque_ptr({}) from {}", ptr, any::type_name::<T>());
 
-        Self {
+        let this = Self {
             ptr,
             ty: PhantomData,
-        }
+        };
+
+        debug!("{:?}::from", this);
+
+        this
     }
 
     #[track_caller]
     pub fn as_ref(&self) -> &'a T {
-        trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
+        trace!("{:?}::as_ref", self);
         assert_ne!(
             self.ptr,
             0,
@@ -56,7 +59,7 @@ impl<'a, T> OpaquePtr<'a, T> {
 
     #[track_caller]
     pub fn as_mut(&mut self) -> &mut T {
-        trace!("opaque_ptr({}) to &{}", self.ptr, any::type_name::<T>());
+        trace!("{:?}::as_mut", self);
         assert_ne!(
             self.ptr,
             0,
@@ -73,7 +76,7 @@ impl<'a, T> OpaquePtr<'a, T> {
     /// It is undefined behavior to reference the ptr in any other context after this.
     #[track_caller]
     pub fn take(self) -> Box<T> {
-        trace!("opaque_ptr({}) to Box<{}>", self.ptr, any::type_name::<T>());
+        trace!("{:?}::take", self);
         assert_ne!(
             self.ptr,
             0,

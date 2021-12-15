@@ -48,7 +48,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmLinker_defineFunc<'j>(
         let module: Cow<str> = Cow::from(&module);
         let name: Cow<str> = Cow::from(&name);
 
-        let func = func.clone();
+        let func = *func;
         linker.define(&module, &name, func)?;
         Ok(())
     })

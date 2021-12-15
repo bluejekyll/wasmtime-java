@@ -11,7 +11,7 @@ public class TestExport implements WasmExportable {
     public void helloToJava(byte[] hello_bytes) {
         final String hello = "Hello Java!";
 
-        System.out.printf("Hello length: %d%n", hello_bytes.length);
+        // System.out.printf("Hello length: %d%n", hello_bytes.length);
 
         final String from_wasm;
         try {
@@ -21,12 +21,14 @@ public class TestExport implements WasmExportable {
             throw new RuntimeException(e);
         }
 
-        System.out.printf("Hello: %s%n", from_wasm);
+        // System.out.printf("Hello: %s%n", from_wasm);
         assertEquals(hello, from_wasm);
     }
 
     @WasmExport(name = "reverse_bytes_java")
     public final byte[] reverseBytesJava(byte[] buffer) {
+        // System.out.printf("reversingBytesJava len: %d%n", buffer.length);
+
         byte[] bytes = new byte[buffer.length];
 
         for (int i = bytes.length - 1; i >= 0; i--) {

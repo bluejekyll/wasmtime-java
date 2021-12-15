@@ -1,11 +1,9 @@
 package net.bluejekyll.wasmtime.tests;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import org.junit.Test;

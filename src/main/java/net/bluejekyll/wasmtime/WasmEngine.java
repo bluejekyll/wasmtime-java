@@ -25,7 +25,11 @@ public class WasmEngine extends AbstractOpaquePtr implements Cloneable {
     private static native long newLinker(long engine_ptr) throws WasmtimeException;
 
     public WasmStore newStore() {
-        return new WasmStore(WasmEngine.newStoreNtv(super.getPtr()));
+        long storePtr = newStoreNtv(super.getPtr());
+
+        System.err.printf("Java Store Pointer: %d%n", storePtr);
+
+        return new WasmStore(storePtr);
     }
 
     public WasmModule newModule(ByteBuffer wasm_bytes) throws WasmtimeException {

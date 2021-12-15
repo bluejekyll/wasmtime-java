@@ -75,7 +75,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
 
         for class in param_list.iter()? {
             // this is a list of classes
-            let val = wasm_value::from_java_class(&env, class.into(), false)
+            let val = wasm_value::from_java_class(env, class.into(), false)
                 .context("error converting type to wasm")?;
             let val = val.ok_or_else(|| anyhow!("Null parameters not allowed"))?;
             debug!(
@@ -89,11 +89,11 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_createFunc<'j>(
         }
 
         // determine the return type
-        let java_ret = wasm_value::from_java_class(&env, return_ty, true)
+        let java_ret = wasm_value::from_java_class(env, return_ty, true)
             .context("error converting type to wasm")?;
         debug!(
             "Mapping return value from {:?} to {:?}",
-            wasm_value::get_class_name(&env, return_ty)?,
+            wasm_value::get_class_name(env, return_ty)?,
             java_ret
         );
 
@@ -409,7 +409,7 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
             }
 
             // now we may need to add a return_by_ref parameter
-            let wasm_return_ty = wasm_value::from_java_class(&env, return_type, true)?;
+            let wasm_return_ty = wasm_value::from_java_class(env, return_type, true)?;
             debug!("return ty: {:?}", wasm_return_ty);
 
             let maybe_ret_by_ref = if let Some(wasm_return_ty) = &wasm_return_ty {
@@ -422,14 +422,15 @@ pub extern "system" fn Java_net_bluejekyll_wasmtime_WasmFunction_callNtv<'j>(
                 None
             };
 
-            //
-            // Call the WASM function
-            let mut val = if wasm_return_ty.is_some() {
+            // If it's pass by ref, then we aren't expecting a return type in the wasm function...
+            let mut val = if wasm_return_ty.is_some() && maybe_ret_by_ref.is_none() {
                 vec![Val::null()]
             } else {
                 vec![]
             };
 
+            //
+            // Call the WASM function
             func.call(&mut *store, &wasm_args, &mut val)
                 .with_context(|| format!("failed to execute wasm function: {:?}", *func))?;
 

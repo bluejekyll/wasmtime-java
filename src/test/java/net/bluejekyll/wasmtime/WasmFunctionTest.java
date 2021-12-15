@@ -19,7 +19,8 @@ public class WasmFunctionTest {
     @Test
     public void testFunction() throws Exception {
         Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
+        try (WasmEngine engine = wasm.newWasmEngine();
+                WasmStore store = engine.newStore()) {
 
             Method method = this.getClass().getMethod("helloWorld");
             WasmFunction func = WasmFunction.newFunc(store, method, this);
@@ -39,7 +40,8 @@ public class WasmFunctionTest {
     @Test
     public void testParamsAndReturn() throws Exception {
         Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
+        try (WasmEngine engine = wasm.newWasmEngine();
+                WasmStore store = engine.newStore()) {
 
             Method method = this.getClass().getMethod("addInts", int.class, int.class);
             WasmFunction func = WasmFunction.newFunc(store, method, this);
@@ -59,7 +61,8 @@ public class WasmFunctionTest {
     @Test
     public void testParamsAndReturnObj() throws Exception {
         Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
+        try (WasmEngine engine = wasm.newWasmEngine();
+                WasmStore store = engine.newStore();) {
 
             Method method = this.getClass().getMethod("addIntegers", Integer.class, Integer.class);
             WasmFunction func = WasmFunction.newFunc(store, method, this);

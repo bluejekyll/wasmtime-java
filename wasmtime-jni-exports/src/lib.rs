@@ -64,6 +64,10 @@ pub trait WasmAllocated: Sized {
     /// Swap current WasmAllocated version with other data
     //#[cfg(target_arch = "wasm32")]
     fn replace(&mut self, other: Owned<Self>);
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// A WasmSlice is an offset into the local `memory` of the WASM module instance.
@@ -78,6 +82,11 @@ pub struct WasmSlice {
 
 impl WasmSlice {
     /// Danger, danger, you probable want `owned` or `borrowed`. This will produce something that is neither.
+    ///
+    /// # Safety
+    ///
+    /// This constructs a new Slice from WASM data. ptr must be a valid offset in memory and the length must be allocated
+    ///   at that offset.
     //#[cfg(not(target_arch = "wasm32"))]
     pub unsafe fn new(ptr: i32, len: i32) -> Self {
         Self { ptr, len }

@@ -529,7 +529,7 @@ pub(crate) fn from_java<'j, 'b: 'j>(
         _ if env.is_instance_of(obj, STRING)? => Ok(WasmVal::from(JString::from(obj))),
         _ => {
             let clazz = env.get_object_class(obj)?;
-            let name = get_class_name(&env, clazz)?;
+            let name = get_class_name(env, clazz)?;
             Err(anyhow!("Unsupported Java object: {}", name))
         }
     }
@@ -587,7 +587,7 @@ pub(crate) unsafe fn return_or_load_or_from_arg<'a, 'w>(
     ret: Option<&Val>,
     ret_by_ref_ptr: Option<WasmSliceWrapper<'w>>,
     wasm_alloc: Option<&'w WasmAlloc>,
-    mut store: &mut Store<JavaState>,
+    store: &mut Store<JavaState>,
 ) -> Result<JObject<'a>, anyhow::Error> {
     match ty {
         WasmTy::ByteBuffer => Err(anyhow!("ByteBuffer unsupported as return Java return type")),
@@ -603,12 +603,8 @@ pub(crate) unsafe fn return_or_load_or_from_arg<'a, 'w>(
         //     IntoByteBuffer(wasm_slice.wasm_slice()).into_java(env, wasm_alloc)
         // }
         WasmTy::ByteArray => {
-            let wasm_slice = WasmSlice::return_or_load_or_from_args(
-                ret,
-                ret_by_ref_ptr,
-                wasm_alloc,
-                &mut store,
-            )?;
+            let wasm_slice =
+                WasmSlice::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, store)?;
             let wasm_slice = WasmSliceWrapper::new(
                 wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc required"))?,
                 wasm_slice,
@@ -616,12 +612,8 @@ pub(crate) unsafe fn return_or_load_or_from_arg<'a, 'w>(
             IntoByteArray(wasm_slice.wasm_slice()).into_java(env, wasm_alloc, store)
         }
         WasmTy::String => {
-            let wasm_slice = WasmSlice::return_or_load_or_from_args(
-                ret,
-                ret_by_ref_ptr,
-                wasm_alloc,
-                &mut store,
-            )?;
+            let wasm_slice =
+                WasmSlice::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, store)?;
             let wasm_slice = WasmSliceWrapper::new(
                 wasm_alloc.ok_or_else(|| anyhow!("WasmAlloc required"))?,
                 wasm_slice,
@@ -629,19 +621,19 @@ pub(crate) unsafe fn return_or_load_or_from_arg<'a, 'w>(
             IntoString(wasm_slice.wasm_slice()).into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::I32) => {
-            i32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+            i32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, store)?
                 .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::I64) => {
-            i64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+            i64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, store)?
                 .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::F32) => {
-            f32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+            f32::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, store)?
                 .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(ValType::F64) => {
-            f64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, &mut store)?
+            f64::return_or_load_or_from_args(ret, ret_by_ref_ptr, wasm_alloc, store)?
                 .into_java(env, wasm_alloc, store)
         }
         WasmTy::ValType(v) => Err(anyhow!("{} unsupported as return Java return type", v)),

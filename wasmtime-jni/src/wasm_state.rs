@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Error};
+use anyhow::{Context, Error};
 use jni::JNIEnv;
 
 use wasmtime_wasi::{sync::WasiCtxBuilder, WasiCtx};

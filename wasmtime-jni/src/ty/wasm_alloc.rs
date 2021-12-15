@@ -3,7 +3,7 @@ use std::mem;
 use std::ops::Deref;
 
 use anyhow::{anyhow, ensure, Context, Error};
-use log::{debug, warn};
+use log::debug;
 use wasmtime::{AsContextMut, Caller, Extern, Func, Instance, Memory, Store, Val};
 use wasmtime_jni_exports::{ALLOC_EXPORT, DEALLOC_EXPORT, MEMORY_EXPORT};
 
@@ -219,8 +219,10 @@ impl<'w> Deref for WasmSliceWrapper<'w> {
 
 impl<'w> Drop for WasmSliceWrapper<'w> {
     fn drop(&mut self) {
-        if let Err(err) = self.wasm_alloc.dealloc_bytes(self.wasm_slice) {
-            warn!("Error deallocating bytes: {}", err);
-        }
+        eprintln!("leaked wasm slice in WASM")
+
+        //if let Err(err) = self.wasm_alloc.dealloc_bytes(self.wasm_slice, self.store) {
+        //    warn!("Error deallocating bytes: {}", err);
+        //}
     }
 }
