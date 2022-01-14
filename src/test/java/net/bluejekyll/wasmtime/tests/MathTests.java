@@ -1,6 +1,8 @@
 package net.bluejekyll.wasmtime.tests;
 
 import net.bluejekyll.wasmtime.*;
+import net.bluejekyll.wasmtime.ty.*;
+
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
@@ -8,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import static org.junit.Assert.*;
+import static net.bluejekyll.wasmtime.ty.WasmTypeUtil.*;
 
 /**
  * Tests corresponding to the Rust based WASM programs in /tests/math
@@ -29,29 +32,8 @@ public class MathTests {
             assertTrue("add_i32 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            int ret = function.call(instance, store, Integer.TYPE, 3, 2);
-            assertEquals(ret, 5);
-        }
-    }
-
-    @Test
-    public void testAddU32() throws Exception {
-        Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine();
-                WasmModule module = engine.newModule(TestUtil.MATH_PATH);
-                WasmStore store = engine.newStore();
-                WasmLinker linker = engine.newLinker()) {
-            System.out.println("slices compiled");
-            assertNotNull(module);
-
-            WasmInstance instance = linker.instantiate(store, module);
-            Optional<WasmFunction> func = instance.getFunction(store, "add_u32");
-
-            assertTrue("add_u32 isn't present in the module", func.isPresent());
-            WasmFunction function = func.get();
-
-            int ret = function.call(instance, store, Integer.TYPE, 3, 2);
-            assertEquals(ret, 5);
+            I32 ret = function.call(instance, store, I32.class, i32(3), i32(2));
+            assertEquals(ret.field, 5);
         }
     }
 
@@ -71,29 +53,8 @@ public class MathTests {
             assertTrue("add_i64 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            long ret = function.call(instance, store, Long.TYPE, (long) 3, (long) 2);
-            assertEquals(ret, 5);
-        }
-    }
-
-    @Test
-    public void testAddU64() throws Exception {
-        Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine();
-                WasmModule module = engine.newModule(TestUtil.MATH_PATH);
-                WasmStore store = engine.newStore();
-                WasmLinker linker = engine.newLinker()) {
-            System.out.println("slices compiled");
-            assertNotNull(module);
-
-            WasmInstance instance = linker.instantiate(store, module);
-            Optional<WasmFunction> func = instance.getFunction(store, "add_u64");
-
-            assertTrue("add_u64 isn't present in the module", func.isPresent());
-            WasmFunction function = func.get();
-
-            long ret = function.call(instance, store, Long.TYPE, (long) 3, (long) 2);
-            assertEquals(ret, 5);
+            I64 ret = function.call(instance, store, I64.class, i64(3), i64(2));
+            assertEquals(ret.field, 5);
         }
     }
 
@@ -113,8 +74,8 @@ public class MathTests {
             assertTrue("add_f32 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            float ret = function.call(instance, store, Float.TYPE, (float) 1.1, (float) 2.2);
-            assertEquals(ret, (float) 3.3, 0.1);
+            F32 ret = function.call(instance, store, F32.class, f32((float) 1.1), f32((float) 2.2));
+            assertEquals(ret.field, (float) 3.3, 0.1);
         }
     }
 
@@ -134,8 +95,8 @@ public class MathTests {
             assertTrue("add_f64 isn't present in the module", func.isPresent());
             WasmFunction function = func.get();
 
-            double ret = function.call(instance, store, Double.TYPE, (double) 1.1, (double) 2.2);
-            assertEquals(ret, (double) 3.3, 0.1);
+            F64 ret = function.call(instance, store, F64.class, f64((double) 1.1), f64((double) 2.2));
+            assertEquals(ret.field, (double) 3.3, 0.1);
         }
     }
 }

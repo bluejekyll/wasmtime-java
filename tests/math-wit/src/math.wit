@@ -1,0 +1,4 @@
+add-i32: function(a: s32, b: s32) -> s32
+add-u32: function(a: u32, b: u32) -> u32
+add-i64: function(a: s64, b: s64) -> s64
+add-u64: function(a: u64, b: u64) -> u64

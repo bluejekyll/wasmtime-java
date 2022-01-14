@@ -14,6 +14,7 @@ import net.bluejekyll.wasmtime.WasmFunction;
 import net.bluejekyll.wasmtime.WasmInstance;
 import net.bluejekyll.wasmtime.WasmStore;
 import net.bluejekyll.wasmtime.WasmtimeException;
+import net.bluejekyll.wasmtime.ty.WasmType;
 
 @NotThreadSafe
 public class WasmImportProxy {
@@ -37,7 +38,8 @@ public class WasmImportProxy {
             WasmFunction function = functions.get(method.getName());
 
             if (function != null) {
-                return function.call(this.instance, this.store, method.getReturnType(), args);
+                WasmType[] wasmArgs = (WasmType[]) args;
+                return function.call(this.instance, this.store, (Class<WasmType>) method.getReturnType(), wasmArgs);
             }
 
             // TODO: add this back with Java 1.16

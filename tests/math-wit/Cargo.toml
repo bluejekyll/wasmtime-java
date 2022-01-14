@@ -1,0 +1,12 @@
+[package]
+name = "math-wit"
+version = "0.1.0"
+authors = ["Benjamin Fry <benjaminfry@me.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ['cdylib']
+
+[dependencies]
+wit-bindgen-rust = { git = "https://github.com/bluejekyll/wit-bindgen" }
+

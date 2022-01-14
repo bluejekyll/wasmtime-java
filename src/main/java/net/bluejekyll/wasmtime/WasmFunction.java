@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
+import net.bluejekyll.wasmtime.ty.*;
 
 @NotThreadSafe
 public class WasmFunction extends AbstractOpaquePtr {
@@ -14,31 +15,47 @@ public class WasmFunction extends AbstractOpaquePtr {
 
     private static native void freeFunc(long ptr);
 
-    private static native long createFunc(long store_ptr, Method method, Object obj, Class<?> returnType,
-            List<Class<?>> paramTypes) throws WasmtimeException;
+    private static native long createFunc(long store_ptr, Method method, Object obj,
+            Class<? extends WasmType> returnType,
+            List<Class<? extends WasmType>> paramTypes) throws WasmtimeException;
 
-    private static native Object callNtv(long func_ptr, long instance_pointer, long store_ptr, Class<?> returnType,
-            Object... args)
+    private static native WasmType callNtv(long func_ptr, long instance_pointer, long store_ptr,
+            Class<? extends WasmType> returnType, WasmType... args)
             throws WasmtimeException;
 
-    public static WasmFunction newFunc(WasmStore store, Object target, String methodName, Class<?>... args)
+    public static WasmFunction newFunc(WasmStore store, Object target, String methodName,
+            Class<? extends WasmType>... args)
             throws WasmtimeException, NoSuchMethodException {
         Method method = target.getClass().getMethod(methodName, args);
         return WasmFunction.newFunc(store, method, target);
     }
 
     public static WasmFunction newFunc(WasmStore store, Method method, Object obj) throws WasmtimeException {
-        List<Class<?>> parameters = new ArrayList<>(5);
+        List<Class<? extends WasmType>> parameters = new ArrayList<>(5);
         for (Parameter param : method.getParameters()) {
-            Class<?> ty = param.getType();
+            Class<?> paramType = param.getType();
+            if (!WasmType.class.isAssignableFrom(paramType))
+                throw new RuntimeException(
+                        String.format("Only WasmType parameters supported: %s", paramType.getName()));
+            Class<? extends WasmType> ty = (Class<WasmType>) paramType;
 
-            System.out.println("ty class: " + ty.getCanonicalName());
             parameters.add(ty);
         }
 
         // validate that the type is something we support
-        Class<?> returnType = method.getReturnType();
-        System.out.println("return class: " + returnType.getCanonicalName());
+        final Class<? extends WasmType> returnType;
+        Class<?> javaReturnType = method.getReturnType();
+        if (WasmType.class.isAssignableFrom(javaReturnType)) {
+            returnType = (Class<WasmType>) javaReturnType;
+        } else if (Void.TYPE.isAssignableFrom(javaReturnType)
+                || Void.class.isAssignableFrom(javaReturnType)) {
+            // We'll allow standard void and Void as well.
+            returnType = WasmVoid.class;
+        } else {
+            throw new RuntimeException(
+                    String.format("Only WasmType return values supported: %s",
+                            javaReturnType.getName()));
+        }
 
         long ptr = createFunc(store.getPtr(), method, obj, returnType, parameters);
         return new WasmFunction(ptr);
@@ -57,7 +74,8 @@ public class WasmFunction extends AbstractOpaquePtr {
      *                           function
      */
     @SuppressWarnings("unchecked")
-    public <T> T call(WasmInstance instance, WasmStore store, Class<T> returnType, Object... args)
+    public <T extends WasmType> T call(WasmInstance instance, WasmStore store, Class<T> returnType,
+            WasmType... args)
             throws WasmtimeException {
         return (T) callNtv(this.getPtr(), instance.getPtr(), store.getPtr(), returnType, args);
     }
@@ -72,8 +90,8 @@ public class WasmFunction extends AbstractOpaquePtr {
      *                           function
      */
     @SuppressWarnings("unchecked")
-    public void call(WasmInstance instance, WasmStore store, Object... args) throws WasmtimeException {
-        callNtv(this.getPtr(), instance.getPtr(), store.getPtr(), Void.class, args);
+    public void call(WasmInstance instance, WasmStore store, WasmType... args) throws WasmtimeException {
+        callNtv(this.getPtr(), instance.getPtr(), store.getPtr(), WasmVoid.class, args);
     }
 
     /**
@@ -82,7 +100,8 @@ public class WasmFunction extends AbstractOpaquePtr {
      * ByteBuffers.
      */
     @SuppressWarnings("unchecked")
-    <T> T call_for_tests(WasmStore store, Class<T> returnType, Object... args) throws WasmtimeException {
+    <T extends WasmType> T call_for_tests(WasmStore store, Class<T> returnType, WasmType... args)
+            throws WasmtimeException {
         return (T) callNtv(this.getPtr(), 0, store.getPtr(), returnType, args);
     }
 
@@ -91,7 +110,7 @@ public class WasmFunction extends AbstractOpaquePtr {
      * native call, which is bad for any non-native types, like Strings arrays or
      * ByteBuffers.
      */
-    void call_for_tests(WasmStore store, Object... args) throws WasmtimeException {
-        callNtv(this.getPtr(), 0, store.getPtr(), Void.class, args);
+    void call_for_tests(WasmStore store, WasmType... args) throws WasmtimeException {
+        callNtv(this.getPtr(), 0, store.getPtr(), WasmVoid.class, args);
     }
 }

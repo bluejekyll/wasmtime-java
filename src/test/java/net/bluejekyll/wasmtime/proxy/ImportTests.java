@@ -25,41 +25,43 @@ public class ImportTests {
     private WasmStore store;
     private WasmLinker linker;
 
-    @Before
-    public void setup() throws WasmtimeException, IOException {
-        this.wasmtime = new Wasmtime();
-        this.engine = wasmtime.newWasmEngine();
-        this.module = engine.newModule(TestUtil.MATH_PATH);
-        System.out.println("slices compiled");
-        assertNotNull(this.module);
+    // @Before
+    // public void setup() throws WasmtimeException, IOException {
+    // this.wasmtime = new Wasmtime();
+    // this.engine = wasmtime.newWasmEngine();
+    // this.module = engine.newModule(TestUtil.MATH_PATH);
+    // System.out.println("slices compiled");
+    // assertNotNull(this.module);
 
-        this.store = engine.newStore();
-        this.linker = engine.newLinker();
-    }
+    // this.store = engine.newStore();
+    // this.linker = engine.newLinker();
+    // }
 
-    @After
-    public void tearDown() {
-        this.linker.close();
-        this.store.close();
-        this.module.close();
-        this.engine.close();
-    }
+    // @After
+    // public void tearDown() {
+    // this.linker.close();
+    // this.store.close();
+    // this.module.close();
+    // this.engine.close();
+    // }
 
-    @Test
-    public void testAddIntegers() throws Exception {
-        WasmInstance instance = linker.instantiate(store, module);
-        TestImportProxy proxy = WasmImportProxy.proxyWasm(instance, store, TestImportProxy.class);
+    // @Test
+    // public void testAddIntegers() throws Exception {
+    // WasmInstance instance = linker.instantiate(store, module);
+    // TestImportProxy proxy = WasmImportProxy.proxyWasm(instance, store,
+    // TestImportProxy.class);
 
-        int ret = proxy.addInteger(3, 2);
-        assertEquals(ret, 5);
-    }
+    // int ret = proxy.addInteger(3, 2);
+    // assertEquals(ret, 5);
+    // }
 
-    @Test
-    public void testAddFloats() throws Exception {
-        WasmInstance instance = linker.instantiate(store, module);
-        TestImportProxy proxy = WasmImportProxy.proxyWasm(instance, store, TestImportProxy.class);
+    // @Test
+    // public void testAddFloats() throws Exception {
+    // WasmInstance instance = linker.instantiate(store, module);
+    // TestImportProxy proxy = WasmImportProxy.proxyWasm(instance, store,
+    // TestImportProxy.class);
 
-        float ret = proxy.addFloats((float) 1.1, (float) 2.2);
-        assertEquals(ret, (float) 3.3, 0.1);
-    }
+    // float ret = proxy.addFloats((float) 1.1, (float) 2.2);
+    // assertEquals(ret, (float) 3.3, 0.1);
+    // }
 }

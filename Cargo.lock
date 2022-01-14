@@ -602,6 +602,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "id-arena"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25a2bc672d1148e28034f176e01fffebb08b35768468cc954630da77a1449005"
+
+[[package]]
 name = "indexmap"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -723,6 +729,13 @@ dependencies = [
 [[package]]
 name = "math"
 version = "0.1.0"
+
+[[package]]
+name = "math-wit"
+version = "0.1.0"
+dependencies = [
+ "wit-bindgen-rust",
+]
 
 [[package]]
 name = "maybe-owned"
@@ -847,6 +860,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd136ff4382c4753fc061cb9e4712ab2af263376b95bbd5bd8cd50c020b78e69"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "pulldown-cmark"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffade02495f22453cd593159ea2f59827aae7f53fa8323f756799b670881dcf8"
+dependencies = [
+ "bitflags",
+ "memchr",
+ "unicase",
 ]
 
 [[package]]
@@ -1203,6 +1227,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c1c1d5a42b6245520c249549ec267180beaffcc0615401ac8e31853d4b6d8d2"
+dependencies = [
+ "tinyvec_macros",
+]
+
+[[package]]
+name = "tinyvec_macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
+
+[[package]]
 name = "toml"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1249,6 +1288,24 @@ name = "typenum"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b63708a265f51345575b27fe43f9500ad611579e764c79edbc2037b1121959ec"
+
+[[package]]
+name = "unicase"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50f37be617794602aabbeee0be4f259dc1778fabe05e2d67ee8f79326d5cb4f6"
+dependencies = [
+ "version_check",
+]
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d54590932941a9e9266f0832deed84ebe1bf2e4c9e4a3554d393d18f5e854bf9"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-segmentation"
@@ -1656,6 +1713,67 @@ dependencies = [
  "bitflags",
  "io-lifetimes",
  "winapi",
+]
+
+[[package]]
+name = "wit-bindgen-gen-core"
+version = "0.1.0"
+source = "git+https://github.com/bluejekyll/wit-bindgen#dab589f579b980c81b39c8348400b88a8c4d175a"
+dependencies = [
+ "anyhow",
+ "wit-parser",
+]
+
+[[package]]
+name = "wit-bindgen-gen-rust"
+version = "0.1.0"
+source = "git+https://github.com/bluejekyll/wit-bindgen#dab589f579b980c81b39c8348400b88a8c4d175a"
+dependencies = [
+ "heck",
+ "wit-bindgen-gen-core",
+]
+
+[[package]]
+name = "wit-bindgen-gen-rust-wasm"
+version = "0.1.0"
+source = "git+https://github.com/bluejekyll/wit-bindgen#dab589f579b980c81b39c8348400b88a8c4d175a"
+dependencies = [
+ "heck",
+ "wit-bindgen-gen-core",
+ "wit-bindgen-gen-rust",
+]
+
+[[package]]
+name = "wit-bindgen-rust"
+version = "0.1.0"
+source = "git+https://github.com/bluejekyll/wit-bindgen#dab589f579b980c81b39c8348400b88a8c4d175a"
+dependencies = [
+ "async-trait",
+ "bitflags",
+ "wit-bindgen-rust-impl",
+]
+
+[[package]]
+name = "wit-bindgen-rust-impl"
+version = "0.1.0"
+source = "git+https://github.com/bluejekyll/wit-bindgen#dab589f579b980c81b39c8348400b88a8c4d175a"
+dependencies = [
+ "proc-macro2",
+ "syn",
+ "wit-bindgen-gen-core",
+ "wit-bindgen-gen-rust-wasm",
+]
+
+[[package]]
+name = "wit-parser"
+version = "0.1.0"
+source = "git+https://github.com/bluejekyll/wit-bindgen#dab589f579b980c81b39c8348400b88a8c4d175a"
+dependencies = [
+ "anyhow",
+ "id-arena",
+ "pulldown-cmark",
+ "unicode-normalization",
+ "unicode-xid",
 ]
 
 [[package]]

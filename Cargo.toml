@@ -6,4 +6,4 @@ inherits = "release"
 lto = true
 
 [workspace]
-members = ["wasmtime-jni", "wasmtime-jni-exports", "tests/math", "tests/slices", "tests/strings"]
+members = ["wasmtime-jni", "wasmtime-jni-exports", "tests/math", "tests/math-wit", "tests/slices", "tests/strings"]

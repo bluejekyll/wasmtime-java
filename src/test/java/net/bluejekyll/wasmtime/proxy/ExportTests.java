@@ -32,86 +32,89 @@ public class ExportTests {
     private WasmStore store;
     private WasmLinker linker;
 
-    @Before
-    public void setup() throws WasmtimeException, IOException {
-        this.wasmtime = new Wasmtime();
-        this.engine = wasmtime.newWasmEngine();
-        this.module = engine.newModule(TestUtil.SLICES_PATH);
-        System.out.println("slices compiled");
-        assertNotNull(this.module);
+    // @Before
+    // public void setup() throws WasmtimeException, IOException {
+    // this.wasmtime = new Wasmtime();
+    // this.engine = wasmtime.newWasmEngine();
+    // this.module = engine.newModule(TestUtil.SLICES_PATH);
+    // System.out.println("slices compiled");
+    // assertNotNull(this.module);
 
-        this.store = engine.newStore();
-        this.linker = engine.newLinker();
+    // this.store = engine.newStore();
+    // this.linker = engine.newLinker();
 
-        // this could be a test instead...
-        this.linker.defineFunctions(this.store, new TestExport());
-    }
+    // // this could be a test instead...
+    // this.linker.defineFunctions(this.store, new TestExport());
+    // }
 
-    @After
-    public void tearDown() {
-        this.linker.close();
-        this.store.close();
-        this.module.close();
-        this.engine.close();
-    }
+    // @After
+    // public void tearDown() {
+    // this.linker.close();
+    // this.store.close();
+    // this.module.close();
+    // this.engine.close();
+    // }
 
-    @Test
-    public void testHelloToJavaWasmModule() throws Exception {
-        WasmInstance instance = linker.instantiate(store, module);
-        Optional<WasmFunction> func = instance.getFunction(store, "say_hello_to_java");
+    // @Test
+    // public void testHelloToJavaWasmModule() throws Exception {
+    // WasmInstance instance = linker.instantiate(store, module);
+    // Optional<WasmFunction> func = instance.getFunction(store,
+    // "say_hello_to_java");
 
-        assertTrue("say_hello_to_java isn't present in the module", func.isPresent());
-        WasmFunction function = func.get();
+    // assertTrue("say_hello_to_java isn't present in the module",
+    // func.isPresent());
+    // WasmFunction function = func.get();
 
-        function.call(instance, store);
+    // function.call(instance, store);
 
-    }
+    // }
 
-    @Test
-    public void testSlicesWasmModule() throws Exception {
-        WasmInstance instance = linker.instantiate(store, module);
-        Optional<WasmFunction> func = instance.getFunction(store, "print_bytes");
+    // @Test
+    // public void testSlicesWasmModule() throws Exception {
+    // WasmInstance instance = linker.instantiate(store, module);
+    // Optional<WasmFunction> func = instance.getFunction(store, "print_bytes");
 
-        assertTrue("print_bytes isn't present in the module", func.isPresent());
-        WasmFunction function = func.get();
+    // assertTrue("print_bytes isn't present in the module", func.isPresent());
+    // WasmFunction function = func.get();
 
-        byte[] bytes = new byte[] { 0, 1, 2, 3 };
+    // byte[] bytes = new byte[] { 0, 1, 2, 3 };
 
-        function.call(instance, store, bytes);
-    }
+    // function.call(instance, store, bytes);
+    // }
 
-    @Test
-    public void testReverseBytes() throws Exception {
-        WasmInstance instance = linker.instantiate(store, module);
-        Optional<WasmFunction> func = instance.getFunction(store, "reverse_bytes");
+    // @Test
+    // public void testReverseBytes() throws Exception {
+    // WasmInstance instance = linker.instantiate(store, module);
+    // Optional<WasmFunction> func = instance.getFunction(store, "reverse_bytes");
 
-        assertTrue("print_bytes isn't present in the module", func.isPresent());
-        WasmFunction function = func.get();
+    // assertTrue("print_bytes isn't present in the module", func.isPresent());
+    // WasmFunction function = func.get();
 
-        byte[] bytes = new byte[] { 0, 1, 2, 3 };
+    // byte[] bytes = new byte[] { 0, 1, 2, 3 };
 
-        byte[] ret = function.call(instance, store, byte[].class, bytes);
-        assertNotNull(ret);
-        assertEquals(bytes.length, ret.length);
+    // byte[] ret = function.call(instance, store, byte[].class, bytes);
+    // assertNotNull(ret);
+    // assertEquals(bytes.length, ret.length);
 
-        assertArrayEquals(ret, new byte[] { 3, 2, 1, 0 });
-    }
+    // assertArrayEquals(ret, new byte[] { 3, 2, 1, 0 });
+    // }
 
-    @Test
-    public void testReverseBytesInJava() throws Exception {
-        WasmInstance instance = linker.instantiate(store, module);
-        Optional<WasmFunction> func = instance.getFunction(store, "reverse_bytes_in_java");
+    // @Test
+    // public void testReverseBytesInJava() throws Exception {
+    // WasmInstance instance = linker.instantiate(store, module);
+    // Optional<WasmFunction> func = instance.getFunction(store,
+    // "reverse_bytes_in_java");
 
-        assertTrue("print_bytes isn't present in the module", func.isPresent());
-        WasmFunction function = func.get();
+    // assertTrue("print_bytes isn't present in the module", func.isPresent());
+    // WasmFunction function = func.get();
 
-        byte[] bytes = new byte[] { 0, 1, 2, 3 };
+    // byte[] bytes = new byte[] { 0, 1, 2, 3 };
 
-        byte[] ret = function.call(instance, store, byte[].class, bytes);
-        assertNotNull(ret);
-        assertEquals(bytes.length, ret.length);
+    // byte[] ret = function.call(instance, store, byte[].class, bytes);
+    // assertNotNull(ret);
+    // assertEquals(bytes.length, ret.length);
 
-        assertArrayEquals(ret, new byte[] { 3, 2, 1, 0 });
+    // assertArrayEquals(ret, new byte[] { 3, 2, 1, 0 });
 
-    }
+    // }
 }

@@ -11,6 +11,10 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import net.bluejekyll.wasmtime.ty.*;
+
+import static net.bluejekyll.wasmtime.ty.WasmTypeUtil.*;
+
 public class WasmFunctionTest {
     public final void helloWorld() {
         System.out.println("Hello World");
@@ -33,8 +37,8 @@ public class WasmFunctionTest {
         }
     }
 
-    public final int addInts(int a, int b) {
-        return a + b;
+    public final I32 addI32s(I32 a, I32 b) {
+        return i32(a.field + b.field);
     }
 
     @Test
@@ -43,40 +47,19 @@ public class WasmFunctionTest {
         try (WasmEngine engine = wasm.newWasmEngine();
                 WasmStore store = engine.newStore()) {
 
-            Method method = this.getClass().getMethod("addInts", int.class, int.class);
+            Method method = this.getClass().getMethod("addI32s", I32.class, I32.class);
             WasmFunction func = WasmFunction.newFunc(store, method, this);
 
             try (func) {
                 System.out.println("running function");
-                int val = func.call_for_tests(store, int.class, 1, 2);
-                assertEquals(3, val);
+                I32 val = func.call_for_tests(store, I32.class, i32(1), i32(2));
+                assertEquals(3, val.field);
             }
         }
     }
 
-    public final Integer addIntegers(Integer a, Integer b) {
-        return a + b;
-    }
-
-    @Test
-    public void testParamsAndReturnObj() throws Exception {
-        Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine();
-                WasmStore store = engine.newStore();) {
-
-            Method method = this.getClass().getMethod("addIntegers", Integer.class, Integer.class);
-            WasmFunction func = WasmFunction.newFunc(store, method, this);
-
-            try (func) {
-                System.out.println("running function");
-                int val = func.call_for_tests(store, int.class, 1, 2);
-                assertEquals(3, val);
-            }
-        }
-    }
-
-    public final long addLongs(long a, long b) {
-        return a + b;
+    public final I64 addI64s(I64 a, I64 b) {
+        return i64(a.field + b.field);
     }
 
     @Test
@@ -84,39 +67,19 @@ public class WasmFunctionTest {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
 
-            Method method = this.getClass().getMethod("addLongs", long.class, long.class);
+            Method method = this.getClass().getMethod("addI64s", I64.class, I64.class);
             WasmFunction func = WasmFunction.newFunc(store, method, this);
 
             try (func) {
                 System.out.println("running function");
-                long val = func.call_for_tests(store, long.class, (long) 1, (long) 2);
-                assertEquals(3, val);
+                I64 val = func.call_for_tests(store, I64.class, i64(1), i64(2));
+                assertEquals(3, val.field);
             }
         }
     }
 
-    public final Long addLongObjs(Long a, Long b) {
-        return a + b;
-    }
-
-    @Test
-    public void testLongObjParamsAndReturn() throws Exception {
-        Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
-
-            Method method = this.getClass().getMethod("addLongObjs", Long.class, Long.class);
-            WasmFunction func = WasmFunction.newFunc(store, method, this);
-
-            try (func) {
-                System.out.println("running function");
-                Long val = func.call_for_tests(store, Long.class, (long) 1, (long) 2);
-                assertEquals(3, val.longValue());
-            }
-        }
-    }
-
-    public final float addFloats(float a, float b) {
-        return a + b;
+    public final F32 addF32s(F32 a, F32 b) {
+        return f32(a.field + b.field);
     }
 
     @Test
@@ -124,42 +87,20 @@ public class WasmFunctionTest {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
 
-            Method method = this.getClass().getMethod("addFloats", float.class, float.class);
+            Method method = this.getClass().getMethod("addF32s", F32.class, F32.class);
             WasmFunction func = WasmFunction.newFunc(store, method, this);
 
             try (func) {
                 System.out.println("running function");
-                float val = func.call_for_tests(store, float.class, (float) 1.1, (float) 1.2);
-                assertTrue(2.29 < val);
-                assertTrue(2.31 > val);
+                F32 val = func.call_for_tests(store, F32.class, f32((float) 1.1), f32((float) 1.2));
+                assertTrue(2.29 < val.field);
+                assertTrue(2.31 > val.field);
             }
         }
     }
 
-    public final Float addFloats(Float a, Float b) {
-        return a + b;
-    }
-
-    @Test
-    public void testFloatObjParamsAndReturn() throws Exception {
-        Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
-
-            Method method = this.getClass().getMethod("addFloats", Float.class, Float.class);
-            WasmFunction func = WasmFunction.newFunc(store, method, this);
-
-            try (func) {
-                System.out.println("running function");
-                Float val = func.call_for_tests(store, Float.class, (float) 1.1, (float) 1.2);
-
-                assertTrue(2.29 < val);
-                assertTrue(2.31 > val);
-            }
-        }
-    }
-
-    public final double addDoubles(double a, double b) {
-        return a + b;
+    public final F64 addF64(F64 a, F64 b) {
+        return f64(a.field + b.field);
     }
 
     @Test
@@ -167,34 +108,14 @@ public class WasmFunctionTest {
         Wasmtime wasm = new Wasmtime();
         try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
 
-            Method method = this.getClass().getMethod("addDoubles", double.class, double.class);
+            Method method = this.getClass().getMethod("addF64", F64.class, F64.class);
             WasmFunction func = WasmFunction.newFunc(store, method, this);
 
             try (func) {
                 System.out.println("running function");
-                double val = func.call_for_tests(store, double.class, (double) 1.1, (double) 1.2);
-                assertTrue(2.29 < val);
-                assertTrue(2.31 > val);
-            }
-        }
-    }
-
-    public final Double addDoubles(Double a, Double b) {
-        return a + b;
-    }
-
-    @Test
-    public void testDoubleObjParamsAndReturn() throws Exception {
-        Wasmtime wasm = new Wasmtime();
-        try (WasmEngine engine = wasm.newWasmEngine(); WasmStore store = engine.newStore()) {
-            WasmFunction func = WasmFunction.newFunc(store, this, "addDoubles", Double.class, Double.class);
-
-            try (func) {
-                System.out.println("running function");
-                Double val = func.call_for_tests(store, Double.class, (double) 1.1, (double) 1.2);
-
-                assertTrue(2.29 < val);
-                assertTrue(2.31 > val);
+                F64 val = func.call_for_tests(store, F64.class, f64((double) 1.1), f64((double) 1.2));
+                assertTrue(2.29 < val.field);
+                assertTrue(2.31 > val.field);
             }
         }
     }

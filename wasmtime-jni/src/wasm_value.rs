@@ -15,10 +15,11 @@ use crate::ty::{Abi, ReturnAbi, WasmAlloc, WasmSlice, WasmSliceWrapper};
 use crate::wasm_state::JavaState;
 
 const CLASS: &str = "Ljava/lang/Class;";
-const LONG: &str = "java/lang/Long";
-const INTEGER: &str = "java/lang/Integer";
-const DOUBLE: &str = "java/lang/Double";
-const FLOAT: &str = "java/lang/Float";
+const I64: &str = "net/bluejekyll/wasmtime/ty/I64";
+const I32: &str = "net/bluejekyll/wasmtime/ty/I32";
+const F64: &str = "net/bluejekyll/wasmtime/ty/F64";
+const F32: &str = "net/bluejekyll/wasmtime/ty/F32";
+const WASM_VOID: &str = "net/bluejekyll/wasmtime/ty/WasmVoid";
 const VOID: &str = "java/lang/Void";
 const STRING: &str = "java/lang/String";
 const BYTE_ARRAY: &str = "[B";
@@ -411,7 +412,7 @@ impl IntoJavaObject for i64 {
         _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Long(self);
-        env.new_object(LONG, "(J)V", &[jvalue])
+        env.new_object(I64, "(J)V", &[jvalue])
             .context("Failed to create new Long")
     }
 }
@@ -424,7 +425,7 @@ impl IntoJavaObject for i32 {
         _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Int(self);
-        env.new_object(INTEGER, "(I)V", &[jvalue])
+        env.new_object(I32, "(I)V", &[jvalue])
             .context("Failed to create new Integer")
     }
 }
@@ -437,7 +438,7 @@ impl IntoJavaObject for f64 {
         _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Double(self);
-        env.new_object(DOUBLE, "(D)V", &[jvalue])
+        env.new_object(F64, "(D)V", &[jvalue])
             .context("Failed to create new Double")
     }
 }
@@ -450,7 +451,7 @@ impl IntoJavaObject for f32 {
         _store: S,
     ) -> Result<JObject<'j>, Error> {
         let jvalue = JValue::Float(self);
-        env.new_object(FLOAT, "(F)V", &[jvalue])
+        env.new_object(F32, "(F)V", &[jvalue])
             .context("Failed to create new Float")
     }
 }
@@ -464,27 +465,14 @@ pub(crate) fn from_java_class<'j>(
         return Ok(None); // FIXME: this should be an exception, right?
     }
 
-    let longp: JClass = env.get_static_field(LONG, PRIMITIVE, CLASS)?.l()?.into();
-    let intp: JClass = env.get_static_field(INTEGER, PRIMITIVE, CLASS)?.l()?.into();
-    let doublep: JClass = env.get_static_field(DOUBLE, PRIMITIVE, CLASS)?.l()?.into();
-    let floatp: JClass = env.get_static_field(FLOAT, PRIMITIVE, CLASS)?.l()?.into();
     let voidp: JClass = env.get_static_field(VOID, PRIMITIVE, CLASS)?.l()?.into();
 
     let ty: WasmTy = match clazz {
-        _ if env.is_assignable_from(clazz, LONG)? => ValType::I64.into(),
-        _ if env.is_assignable_from(clazz, longp)? => ValType::I64.into(),
-        _ if env.is_assignable_from(clazz, INTEGER)? => ValType::I32.into(),
-        _ if env.is_assignable_from(clazz, intp)? => ValType::I32.into(),
-        _ if env.is_assignable_from(clazz, DOUBLE)? => ValType::F64.into(),
-        _ if env.is_assignable_from(clazz, doublep)? => ValType::F64.into(),
-        _ if env.is_assignable_from(clazz, FLOAT)? => ValType::F32.into(),
-        _ if env.is_assignable_from(clazz, floatp)? => ValType::F32.into(),
-        _ if !for_return && env.is_assignable_from(clazz, BYTE_BUFFER)? => {
-            // cant't return
-            WasmTy::ByteBuffer
-        }
-        _ if env.is_assignable_from(clazz, BYTE_ARRAY)? => WasmTy::ByteArray,
-        _ if env.is_assignable_from(clazz, STRING)? => WasmTy::String,
+        _ if env.is_assignable_from(clazz, I64)? => ValType::I64.into(),
+        _ if env.is_assignable_from(clazz, I32)? => ValType::I32.into(),
+        _ if env.is_assignable_from(clazz, F64)? => ValType::F64.into(),
+        _ if env.is_assignable_from(clazz, F32)? => ValType::F32.into(),
+        _ if env.is_assignable_from(clazz, WASM_VOID)? => return Ok(None),
         _ if env.is_assignable_from(clazz, VOID)? => return Ok(None),
         _ if env.is_assignable_from(clazz, voidp)? => return Ok(None),
         _ => {
@@ -508,25 +496,25 @@ pub(crate) fn from_java<'j, 'b: 'j>(
 
     assert!(!obj.is_null(), "obj should not be null for conversion");
     match obj {
-        _ if env.is_instance_of(obj, LONG)? => {
+        _ if env.is_instance_of(obj, I64)? => {
             let jvalue = env.call_method(obj, "longValue", "()J", &[])?;
             Ok(Val::I64(jvalue.j()?).into())
         }
-        _ if env.is_instance_of(obj, INTEGER)? => {
+        _ if env.is_instance_of(obj, I32)? => {
             let jvalue = env.call_method(obj, "intValue", "()I", &[])?;
             Ok(Val::I32(jvalue.i()?).into())
         }
-        _ if env.is_instance_of(obj, DOUBLE)? => {
+        _ if env.is_instance_of(obj, F64)? => {
             let jvalue = env.call_method(obj, "doubleValue", "()D", &[])?;
             Ok(Val::F64(jvalue.d()?.to_bits()).into())
         }
-        _ if env.is_instance_of(obj, FLOAT)? => {
+        _ if env.is_instance_of(obj, F32)? => {
             let jvalue = env.call_method(obj, "floatValue", "()F", &[])?;
             Ok(Val::F32(jvalue.f()?.to_bits()).into())
         }
         // _ if env.is_instance_of(obj, BYTE_BUFFER)? => Ok(WasmVal::from(JByteBuffer::from(obj))),
-        _ if env.is_instance_of(obj, BYTE_ARRAY)? => Ok(WasmVal::from_byte_array(env, *obj)),
-        _ if env.is_instance_of(obj, STRING)? => Ok(WasmVal::from(JString::from(obj))),
+        // _ if env.is_instance_of(obj, BYTE_ARRAY)? => Ok(WasmVal::from_byte_array(env, *obj)),
+        // _ if env.is_instance_of(obj, STRING)? => Ok(WasmVal::from(JString::from(obj))),
         _ => {
             let clazz = env.get_object_class(obj)?;
             let name = get_class_name(env, clazz)?;
