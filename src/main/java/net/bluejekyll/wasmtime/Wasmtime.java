@@ -35,6 +35,9 @@ public class Wasmtime {
         if (osName.contains("Mac OS X")) {
             osName = "Darwin";
         }
+        if (osArch.contains("amd64")) {
+            osArch = "x86_64";
+        }
 
         final String libName = System.mapLibraryName(NATIVE_LIB);
         final String libPath = String.format("NATIVE/%s/%s/%s", osName, osArch, libName);

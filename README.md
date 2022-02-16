@@ -10,7 +10,7 @@ This is very early stages. All interfaces are subject to change. Supported platf
 
 ## Building
 
-Use the provided Makefile.
+Use the provided Makefile. You need Java 11 (not 17), Maven and Rustup (the error messages will prompt you to install that if you don't have it).
 
 Ensure tools are installed:
 
@@ -31,6 +31,8 @@ Install the maven packages locally:
 ```
 
 ## Using in Java
+
+Maven co-ordinates for the installed artifacts: `net.bluejekyll:wasmtime-java:1.0-SNAPSHOT`.
 
 ### Initializing the Wasmtime runtime
 
