@@ -17,6 +17,6 @@ flexi_logger = "0.17.1"
 jni = "0.19.0"
 log = "0.4.11"
 wasi-common = "0.31.0"
-wasmtime = { version = "0.31", features=["jitdump", "wat", "cache"] }
+wasmtime = { version = "0.34", features=["jitdump", "wat", "cache"] }
 wasmtime-jni-exports = { path = "../wasmtime-jni-exports" }
 wasmtime-wasi = "0.31.0"
