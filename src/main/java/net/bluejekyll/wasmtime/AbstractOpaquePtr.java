@@ -33,7 +33,7 @@ public abstract class AbstractOpaquePtr implements AutoCloseable {
         }
     }
 
-    protected long getPtr() {
+    public final long getPtr() {
         return this.ptr;
     }
 

@@ -57,11 +57,11 @@ target/native:
 .PHONY: build
 build:
 	@echo "====> Building"
-	cd wasmtime-jni && cargo build
-	$(MAKE) ${WASM_TESTS}
-
 	rm -rf ${PWD}/target/native
 	$(MAKE) mvn-compile
+	
+	cd wasmtime-jni && cargo build
+	$(MAKE) ${WASM_TESTS}
 
 .PHONY: ${WASM_TESTS}
 ${WASM_TESTS}:
@@ -79,15 +79,19 @@ mvn-test: target/native
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn verify
 
 .PHONY: mvn-compile
-mvn-compile: target/native
+mvn-compile:
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn compile
 
 .PHONY: package
-package: build
+package: build target/native
 	PLATFORM=${PLATFORM} ARCH=${ARCH} mvn package
 
+.PHONY: install
+install: package
+	mvn install
+
 .PHONY: cleanliness
-cleanliness:
+cleanliness: mvn-compile
 	cargo clean -p wasmtime-jni -p wasmtime-jni-exports -p math -p slices -p strings
 	cargo clippy -- -D warnings
 	cargo fmt -- --check

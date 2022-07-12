@@ -10,10 +10,15 @@ edition = "2018"
 name = "wasmtime_jni"
 crate_type = ["cdylib"]
 
+[build-dependencies]
+#jaffi = { version = "0.1.0", git = "https://github.com/bluejekyll/jaffi.git", branch = "main" }
+jaffi = { version = "0.1.0", path = "../../jaffi"}
+
 [dependencies]
 anyhow = "1.0.32"
 flexi_logger = "0.16.1"
 #env_logger = "0.7.1"
+jaffi_support = { version = "0.1.0", path = "../../jaffi/jaffi_support"}
 jni = "0.17.0"
 log = "0.4.11"
 wasmtime = { version = "0.20", features=["jitdump", "wat", "cache"] }

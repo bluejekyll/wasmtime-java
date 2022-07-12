@@ -1,6 +1,6 @@
 use wasmtime_jni_exports::WasmSlice;
 
-/// test imports from Java
+// test imports from Java
 #[link(wasm_import_module = "test")]
 extern "C" {
     fn say_hello_to_java(data: WasmSlice, response: &mut WasmSlice);
